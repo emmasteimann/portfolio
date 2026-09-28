@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SlimeLab — Goose Steimann</title>
+  <meta name="description" content="A playable slime character in Unreal Engine 5.8: GPU MLS-MPM simulation and a custom rendering pass, running on Metal." />
+  <meta property="og:image" content="/media/slime_clear_squish.jpg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header class="nav is-scrolled">
+    <a class="nav-mark" href="/" aria-label="Home">GS</a>
+    <nav>
+      <a href="/#work">Work</a>
+      <a href="/#shipped">Shipped</a>
+      <a href="/#about">About</a>
+      <a class="nav-cta" href="mailto:emmasteimann@gmail.com">Contact</a>
+    </nav>
+  </header>
+
+  <section class="case-hero">
+    <a class="back" href="/#work">← All work</a>
+    <p class="eyebrow">Unreal Engine 5.8 plugin · C++ · HLSL · RDG · Metal / D3D12 / Vulkan</p>
+    <h1>SlimeLab</h1>
+    <p class="case-lede">A playable slime character. It's simulated on the GPU with MLS-MPM and drawn with its own rendering pass. Flatten it and it re-goos itself back together.</p>
+    <div class="case-video">
+      <video src="/media/slime_clear_squish.mp4" poster="/media/slime_clear_squish.jpg" muted loop playsinline autoplay></video>
+    </div>
+    <dl class="case-meta">
+      <div><dt>Particles</dt><dd>51,198</dd></div>
+      <div><dt>Simulation</dt><dd>8.2 ms</dd></div>
+      <div><dt>Rendering</dt><dd>1.2 ms</dd></div>
+      <div><dt>Measured on</dt><dd>M5 Pro · 1440p</dd></div>
+    </dl>
+  </section>
+
+  <article class="prose">
+    <h2>Why</h2>
+    <p>Asher Zhu's UE5 slime showed how much character a blob of goo can have. I wanted to build my own at the engine level, with physics that hold up up close and a look that reads as clear, wet and alive rather than as particles. The approach and code are my own. It's an engine plugin rather than a Niagara setup, hooked into the renderer through a scene view extension, and it runs natively on Apple Silicon.</p>
+
+    <div class="pipeline">
+      <span>P2G</span><i>→</i><span>Surface</span><i>→</i><span>Grid update</span><i>→</i><span>G2P</span><i>× up to 64 substeps</i><i>→</i><span>Ray-march</span><i>→</i><span>Composite</span>
+    </div>
+
+    <h2>Simulation</h2>
+    <ul>
+      <li><strong>MLS-MPM</strong> (Hu et al. 2018) with APIC transfer on a quadratic B-spline stencil, substepped by a CFL condition on the pressure wave speed.</li>
+      <li><strong>Viscoplastic material</strong> after Yue et al. 2015. Particles store the elastic left Cauchy-Green tensor rather than F, so there's no per-particle SVD. Below yield it wobbles like jelly; above yield it flows, with Herschel-Bulkley shear-thinning.</li>
+      <li><strong>Surface tension</strong> as a grid-based continuum surface force (Brackbill 1992). Without it, pokes punch permanent holes; with it, dents heal and edges round off.</li>
+      <li><strong>Portable atomics.</strong> Particle-to-grid scatters in 16.16 fixed point with integer <code>InterlockedAdd</code>, so it doesn't depend on float-atomic support, which differs between D3D12, Vulkan and Metal.</li>
+    </ul>
+
+    <h2 id="collision">Scene collision</h2>
+    <p>The slime collides with any mesh that has a distance field, with no authored colliders. The simulation runs in <code>PostRenderBasePassDeferred</code>, the earliest view-extension hook after the renderer updates the Global Distance Field for the frame. The grid update removes inward velocity with Coulomb friction, and particles that tunnel in are pushed out. It's a shader permutation, so platforms without distance fields fall back to the box. It costs about 0.6 ms.</p>
+    <figure>
+      <video src="/media/slime_scene_collision.mp4" poster="/media/slime_scene_collision.jpg" muted loop playsinline preload="none" data-autoplay></video>
+      <figcaption>Collision against scene meshes through the Global Distance Field.</figcaption>
+    </figure>
+
+    <h2 id="shape-shifting">A character, not a puddle</h2>
+    <p>The body's shape is a <strong>mold</strong>: a signed distance field in the body frame. Goo outside it is pulled back in, and grid <strong>density control</strong> (after Thuerey et al. 2006) pushes goo from overfull cells into empty parts of the mold. The body frame comes from a deterministic two-pass GPU reduction (center of mass, velocity and rotation).</p>
+    <p>My first attempt gave each particle a rest position. It failed because mixing scrambles which particle belongs where, and the pulls cancel out. The mold doesn't care which particle goes where, so it re-goos however mixed things get.</p>
+    <p>Shape-shifting is a mold swap. Five volume-matched SDFs (blob, cube, donut, pill, star) blend into each other. Squash and lean come from springs driven by the body's velocity. The eyes ride whichever particle is nearest each socket, picked every frame with a packed (distance, index) atomic min, so they stay on the surface through any squash.</p>
+    <figure>
+      <video src="/media/slime_shapeshift.mp4" poster="/media/slime_shapeshift.jpg" muted loop playsinline preload="none" data-autoplay></video>
+      <figcaption>Morphing between molds. All shapes have the same volume, so nothing is gained or lost.</figcaption>
+    </figure>
+    <figure>
+      <video src="/media/slime_character_regoo.mp4" poster="/media/slime_character_regoo.jpg" muted loop playsinline preload="none" data-autoplay></video>
+      <figcaption>Crushed flat, then re-gooing.</figcaption>
+    </figure>
+
+    <h2>Rendering</h2>
+    <ul>
+      <li><strong>Ray-marched isosurface.</strong> The grid already holds a smooth fill fraction and its gradient (used by surface tension and the mold). The composite marches <code>fill = 0.5</code> per pixel with bisection refinement, taking normals from the gradient and thickness from marching through to the exit point. Close up, there are no particle lumps for the refraction to magnify.</li>
+      <li><strong>Two-surface lens refraction</strong> at IOR 1.33 with slight per-channel dispersion. Beer-Lambert absorption driven by thickness gives the clear teal body.</li>
+      <li><strong>Bubbles</strong> are particles that carry a radius. They rise, pop at the surface and respawn deep inside, splatted into their own depth target and shaded as air pockets.</li>
+      <li><strong>Reflections</strong>: a screen-space march against scene depth. Rays that escape over the sky sample the sky pixels themselves, and anything else falls back to the skylight SH.</li>
+      <li>The pass runs in <code>BeforeDOF</code> at internal resolution with jittered depth, so TSR anti-aliases the slime and depth of field treats it like scene geometry.</li>
+      <li>A cheaper <strong>screen-space splat</strong> mode (narrow-range filter, Truong &amp; Yuksel 2018) remains for mid-distance shots.</li>
+    </ul>
+
+    <h2>Performance</h2>
+    <p>Packaged Development build, Apple M5 Pro (Metal SM6), 2560×1440, Lumen on, 51,198 particles, 64³ grid. Each number is the median of 10 <code>ProfileGPU</code> captures, because single captures on Metal varied more than 3×.</p>
+    <table>
+      <thead><tr><th>Scope</th><th>Collision on</th><th>Collision off</th></tr></thead>
+      <tbody>
+        <tr><td>Simulation (54 substeps)</td><td>8.20 ms</td><td>7.63 ms</td></tr>
+        <tr><td>Rendering</td><td>1.21 ms</td><td>0.91 ms</td></tr>
+      </tbody>
+    </table>
+    <p>The substep count dominates cost. Simulated time per frame is capped at 1/60 s: substeps scale with simulated time, so without the cap a slow frame requests more substeps and the next frame is slower still.</p>
+
+    <h2>Bugs worth telling</h2>
+    <div class="story">
+      <h3>Texture atomics silently did nothing on Metal</h3>
+      <p>Splatting was correct in logic but produced nothing. A debug view that tinted the whole screen proved the composite ran; one that wrote a fixed block of pixels, bypassing projection, proved the atomics weren't landing. Metal needs <code>TexCreate_AtomicCompatible</code> on any texture used with shader atomics. D3D12 doesn't.</p>
+    </div>
+    <div class="story">
+      <h3>The floor never pushed back</h3>
+      <p>Particles were clamped 2.5 cells from the wall, but only cells 0–1 enforced the boundary, so no particle's 3×3×3 stencil ever touched a boundary cell. A GPU readback showed particle 0 pinned at the clamp with a velocity of −180 and still falling.</p>
+    </div>
+    <div class="story">
+      <h3>An unbound uniform buffer only the cook caught</h3>
+      <p>The distance-field permutation includes engine helpers that read the View uniform buffer, which my parameter struct didn't declare. The editor ran it without complaint while reading garbage; the cook's shader-binding validation failed the build.</p>
+    </div>
+    <div class="story">
+      <h3>The shape mold turned into a rocket</h3>
+      <p>Anchored at the body's lowest point, density control pushed the bottom layer upward, which moved the anchor up, which pushed again, and the slime flew. Anchoring on the lowest particle that is actually resting on something fixed it.</p>
+    </div>
+
+    <h2>References</h2>
+    <ul class="refs">
+      <li>Hu et al. 2018, <em>A Moving Least Squares Material Point Method with Displacement Discontinuity and Two-Way Rigid Body Coupling</em></li>
+      <li>Yue et al. 2015, <em>Continuum Foam: A Material Point Method for Shear-Dependent Flows</em></li>
+      <li>Brackbill, Kothe, Zemach 1992, <em>A Continuum Method for Modeling Surface Tension</em></li>
+      <li>Thuerey et al. 2006, density control for fluid shape guidance</li>
+      <li>Truong &amp; Yuksel 2018, <em>A Narrow-Range Filter for Screen-Space Fluid Rendering</em></li>
+    </ul>
+  </article>
+
+  <footer class="footer">
+    <p><a href="/">← Back to Goose Steimann</a></p>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

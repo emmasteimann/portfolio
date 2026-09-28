@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Goose Steimann — Rendering Engineer</title>
+  <meta name="description" content="Goose Steimann: senior rendering engineer (Epic Games / Psyonix, Niantic Lightship). Real-time simulation, shaders, engine rendering and tech art." />
+  <meta property="og:title" content="Goose Steimann — Rendering Engineer" />
+  <meta property="og:description" content="Real-time rendering, GPU simulation and tech art. Ex-Epic/Psyonix and Niantic." />
+  <meta property="og:image" content="/img/studio.webp" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header class="nav">
+    <a class="nav-mark" href="#top" aria-label="Home">GS</a>
+    <nav>
+      <a href="#work">Work</a>
+      <a href="#shipped">Shipped</a>
+      <a href="#about">About</a>
+      <a href="/Goose-Steimann-Resume.pdf">Résumé</a>
+      <a class="nav-cta" href="mailto:emmasteimann@gmail.com">Contact</a>
+    </nav>
+  </header>
+
+  <section class="hero" id="top">
+    <div class="hero-stage" data-image="/img/studio.webp">
+      <img class="hero-fallback" src="/img/studio.webp" alt="A cozy night-time studio: a little ghost at a desk with monitors, lamps and an ON AIR sign." />
+    </div>
+    <div class="hero-shade"></div>
+
+    <div class="hero-copy">
+      <h1>Goose<br />Steimann</h1>
+      <p class="hero-role">Rendering Engineer<br />Real-time graphics · Tech art · AR</p>
+      <p class="hero-tagline">Engine-level rendering for Fortnite, Rocket League and Pokémon GO. Now building simulations and shaders that feel alive.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#work">See the work</a>
+        <a class="btn" href="/Goose-Steimann-Resume.pdf">Résumé</a>
+      </div>
+    </div>
+
+    <aside class="hero-channels" aria-label="Sections">
+      <span class="channels-title">Channels</span>
+      <a href="/projects/slimelab.html"><span>01</span>SlimeLab</a>
+      <a href="#work"><span>02</span>Shaders</a>
+      <a href="#shipped"><span>03</span>Shipped games</a>
+      <a href="#about"><span>04</span>About</a>
+    </aside>
+
+    <p class="hero-hint">The CRT on the desk is a live ray-marched shader.</p>
+  </section>
+
+  <main>
+    <section class="section" id="work">
+      <div class="section-head">
+        <h2 class="script">Featured projects</h2>
+      </div>
+
+      <div class="featured">
+        <a class="feature-main" href="/projects/slimelab.html">
+          <div class="media">
+            <video src="/media/slime_clear_squish.mp4" poster="/media/slime_clear_squish.jpg" muted loop playsinline preload="none" data-autoplay></video>
+          </div>
+          <div class="feature-body">
+            <p class="eyebrow">Unreal Engine 5.8 plugin · GPU simulation · Rendering</p>
+            <h3>SlimeLab</h3>
+            <p>A playable slime character simulated with MLS-MPM on the GPU and rendered with a custom pass: ray-marched isosurface, two-surface lens refraction, bubbles and glow eyes. Squash it flat and it re-goos itself.</p>
+            <ul class="stats">
+              <li><strong>51k</strong> particles</li>
+              <li><strong>8.2 ms</strong> sim</li>
+              <li><strong>1.2 ms</strong> render</li>
+              <li>M5 Pro · Metal · 1440p</li>
+            </ul>
+            <span class="more">Read the breakdown →</span>
+          </div>
+        </a>
+
+        <div class="feature-side">
+          <a class="side-card" href="/projects/slimelab.html#shape-shifting">
+            <div class="thumb"><video src="/media/slime_shapeshift.mp4" poster="/media/slime_shapeshift.jpg" muted loop playsinline preload="none" data-autoplay></video></div>
+            <div><h4>Shape-shifting</h4><p>SDF molds with density control, blending between five shapes.</p></div>
+          </a>
+          <a class="side-card" href="/projects/slimelab.html#collision">
+            <div class="thumb"><video src="/media/slime_scene_collision.mp4" poster="/media/slime_scene_collision.jpg" muted loop playsinline preload="none" data-autoplay></video></div>
+            <div><h4>Scene collision</h4><p>Collides with any mesh through the Global Distance Field, no authored colliders.</p></div>
+          </a>
+          <div class="side-card side-card--lab">
+            <div class="thumb thumb--lab"><span>In the lab</span></div>
+            <div><h4>Shader cost auditor</h4><p>An Unreal editor plugin that profiles material cost per platform, including Mac.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="shipped">
+      <div class="section-head">
+        <h2 class="script">Shipped</h2>
+        <p class="section-note">Most of my professional work is under NDA, so here's what it covered.</p>
+      </div>
+      <div class="shipped">
+        <article class="ship-card">
+          <p class="eyebrow">2022 – 2026 · Los Angeles</p>
+          <h3>Epic Games / Psyonix</h3>
+          <p class="ship-role">Senior Rendering Engineer</p>
+          <p class="ship-titles">Fortnite · Rocket League · Rocket Racing · UEFN</p>
+          <ul>
+            <li>Rendering architecture across UE5, UEFN, SceneGraph and Verse, at both game and engine-core level.</li>
+            <li>Engine-level shader pipelines and tech-art tooling adopted studio-wide.</li>
+            <li>HLSL and compute shaders, PBR, post-processing, ray tracing (Lumen, DXR); GPU profiling on PC, PS5, Xbox Series X and mobile.</li>
+          </ul>
+        </article>
+        <article class="ship-card">
+          <p class="eyebrow">2020 – 2022 · London</p>
+          <h3>Niantic — Lightship ARDK</h3>
+          <p class="ship-role">AR Software Engineer (R&amp;D)</p>
+          <p class="ship-titles">Pokémon GO · Pikmin Bloom · Peridot · Ingress</p>
+          <ul>
+            <li>Core ML-to-rendering pipeline architecture for the Lightship ARDK.</li>
+            <li>Reality-blending AR rendering used by hundreds of millions of players on iOS and Android.</li>
+            <li>Cross-platform graphics tooling in Unity, C++, HLSL, Metal and Vulkan.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section about" id="about">
+      <div class="about-copy">
+        <h2 class="script">About</h2>
+        <p>I'm a rendering engineer who likes the whole stack: GPU architecture and frame budgets at one end, and making something that looks and feels good at the other. I've shaped rendering at engine scale at Epic, built AR rendering at Niantic, and spent years before that freelancing on game engines, AR games and interactive murals.</p>
+        <p>I also mentor. Much of my best work has been tooling that lets technical artists move faster.</p>
+        <p class="about-honors">Winner, MIT Reality Hack 2023 · Mentor, MIT Reality Hack 2024 · Judge, NASA Space Apps NYC</p>
+      </div>
+      <dl class="skills">
+        <div><dt>Graphics</dt><dd>Vulkan, DirectX 12, DXR, Metal, OpenGL, HLSL, GLSL, compute</dd></div>
+        <div><dt>Engines</dt><dd>Unreal Engine (core + game), Unity, Lightship ARDK</dd></div>
+        <div><dt>Rendering</dt><dd>Ray tracing, Lumen, PBR, post-processing, GPU simulation, LOD, draw-call optimization</dd></div>
+        <div><dt>Profiling</dt><dd>RenderDoc, PIX, Xcode Metal debugger, Unreal Insights</dd></div>
+        <div><dt>Languages</dt><dd>C++, C#, HLSL, Python, JavaScript</dd></div>
+        <div><dt>Platforms</dt><dd>PS5, Xbox Series X, Switch, PC, Mac, iOS, Android</dd></div>
+      </dl>
+    </section>
+
+    <section class="contact" id="contact">
+      <img class="contact-strip" src="/img/desk-strip.webp" alt="" loading="lazy" />
+      <div class="contact-body">
+        <p class="script contact-quote">"I love the place where art, code and graphics meet."</p>
+        <h2>Let's make something that renders beautifully.</h2>
+        <div class="contact-links">
+          <a class="btn btn-primary" href="mailto:emmasteimann@gmail.com">emmasteimann@gmail.com</a>
+          <a class="btn" href="https://www.linkedin.com/in/emmasteimann">LinkedIn</a>
+          <a class="btn" href="https://github.com/emmasteimann">GitHub</a>
+          <a class="btn" href="/Goose-Steimann-Resume.pdf">Résumé (PDF)</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>© 2026 Goose Steimann · Los Angeles · Built with Three.js and a custom shader</p>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
