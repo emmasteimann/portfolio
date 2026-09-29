@@ -92,6 +92,12 @@ vec3 bodyNormal(vec3 p) {
                    k.yxy * sdBody(p + k.yxy * h) + k.xxx * sdBody(p + k.xxx * h));
 }
 
+float hash13(vec3 p) {
+  p = fract(p * 0.1031);
+  p += dot(p, p.zyx + 31.32);
+  return fract((p.x + p.y) * p.z);
+}
+
 vec3 heat(float x) {
   x = clamp(x, 0.0, 1.0);
   return clamp(vec3(
@@ -187,19 +193,47 @@ void main() {
     vec3 absorb = exp(-thick * vec3(0.95, 0.16, 0.3));
     vec3 slime = behind * vec3(0.55, 1.05, 0.92) * absorb * 1.7 + vec3(0.12, 0.62, 0.5) * (1.0 - absorb.r) * 0.38;
 
-    vec3 rr = reflect(rd, n);
-    slime = mix(slime, environment(p, rr, false) * 1.3, fres);
-    slime += pow(max(dot(rr, normalize(vec3(-0.8, 0.45, 0.4))), 0.0), 120.0) * vec3(1.0, 0.8, 0.6) * 2.5;
-    slime += pow(1.0 - cosV, 3.0) * vec3(0.35, 0.9, 0.8) * 0.3;
+    // Interior glow: march the path through the body in even steps, gathering light that's
+    // strongest near the core (thick goo glows, thin edges stay clear), plus motes drifting up.
+    vec3 glow = vec3(0.0);
+    float sparkle = 0.0;
+    float stepLen = thick / 12.0;
+    for (int i = 0; i < 12; i++) {
+      vec3 q = p + rIn * (stepLen * (float(i) + 0.5));
+      vec3 dc = (q - uBound.xyz) / max(uBound.w * 0.55, 0.2);
+      glow += vec3(0.25, 1.0, 0.7) * exp(-dot(dc, dc) * 2.2) * stepLen;
+      vec3 m = q * 7.0 - vec3(0.0, uTime * 0.5, 0.0);
+      vec3 id = floor(m);
+      float h = hash13(id);
+      vec3 jitter = vec3(h, hash13(id + 7.1), hash13(id + 3.7)) - 0.5;
+      float d = length(fract(m) - 0.5 - jitter * 0.6);
+      sparkle += step(0.78, h) * smoothstep(0.16, 0.0, d) * (0.6 + 0.4 * sin(uTime * 3.0 + h * 40.0));
+    }
+    slime += glow * 1.1 + vec3(0.8, 1.0, 0.9) * sparkle * 0.9;
 
-    // Eyes: glowing ovals centered on points that ride the surface.
+    // Iridescence: a thin film on the surface whose thickness drifts across the body. Light
+    // reflected from its two faces interferes, so the hue depends on thickness and view angle.
+    float film = 420.0 + 240.0 * sin(dot(p, vec3(3.1, 4.3, 2.2)) + uTime * 0.6)
+                       + 60.0 * sin(dot(p, vec3(-5.7, 2.9, 4.1)) - uTime * 0.4);
+    float cosT = sqrt(1.0 - (1.0 - cosV * cosV) / (1.33 * 1.33));
+    vec3 phase = 2.0 * 1.33 * film * cosT / vec3(650.0, 532.0, 450.0);
+    vec3 iri = 0.5 + 0.5 * cos(6.28318 * phase);
+
+    vec3 rr = reflect(rd, n);
+    slime = mix(slime, environment(p, rr, false) * 1.3 * mix(vec3(1.0), iri * 1.5, 0.75), fres);
+    slime += (iri - 0.35) * pow(1.0 - cosV, 1.5) * 0.7;   // rainbow sheen toward the rim
+    slime += pow(max(dot(rr, normalize(vec3(-0.8, 0.45, 0.4))), 0.0), 120.0) * vec3(1.0, 0.8, 0.6) * 2.5;
+
+    // Eyes: glowing ovals centered on points that ride the surface, with a halo in the goo.
     for (int k = 0; k < 2; k++) {
       vec3 e = uEyes[k];
       float te = dot(e - ro, rd);
       vec3 o = ro + rd * te - e;
       vec2 q = vec2(dot(o, uCamRight) / 0.055, dot(o, uCamUp) / mix(0.01, 0.085, uBlink));
-      float eye = (1.0 - smoothstep(0.75, 1.0, length(q))) * step(abs(te - t), 0.25);
-      slime = mix(slime, vec3(0.85, 1.0, 0.95) * 1.8, eye);
+      float front = step(abs(te - t), 0.25);
+      float eye = (1.0 - smoothstep(0.75, 1.0, length(q))) * front;
+      slime += vec3(0.4, 1.0, 0.8) * exp(-dot(o, o) * 60.0) * 0.55 * front * uBlink;
+      slime = mix(slime, vec3(0.9, 1.0, 0.95) * 1.9, eye);
     }
     col = slime;
   }
