@@ -179,12 +179,24 @@ void main() {
     thick = 0.02;
     // March the uncut blobs: exiting through their rounded underside instead of the flat floor
     // cut avoids a hard seam in what you see through the body.
+    float inside = thick;
     for (int i = 0; i < 20; i++) {
       float d = -sdBlobs(p + rIn * thick);
       if (d < 0.002) break;
+      inside = thick;
       thick += max(d, 0.012);
     }
+    // The march can overshoot the far surface; bisect back onto it so the thickness and exit
+    // point are continuous across the body (otherwise they show up as contour rings).
+    float outside = thick;
+    for (int i = 0; i < 6; i++) {
+      float mid = 0.5 * (inside + outside);
+      if (sdBlobs(p + rIn * mid) < 0.0) inside = mid; else outside = mid;
+    }
+    thick = 0.5 * (inside + outside);
     vec3 exitP = p + rIn * thick;
+    // The uncut blobs dip just below the floor; light leaving there comes from the floor itself.
+    exitP.y = max(exitP.y, 0.001);
     vec3 nOut = -blobsNormal(exitP);
     vec3 rOut = refract(rIn, nOut, 1.33);
     if (dot(rOut, rOut) < 0.01) rOut = reflect(rIn, nOut);
