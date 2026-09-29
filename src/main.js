@@ -26,15 +26,9 @@ const onScroll = () => nav?.classList.toggle('is-scrolled', window.scrollY > 40)
 window.addEventListener('scroll', onScroll, { passive: true });
 onScroll();
 
-// Shadertoy embeds load only when asked: each one is a full WebGL context.
+// Shadertoy refuses to be framed on other sites, so "Run live" opens the shader there.
 document.querySelectorAll('.shader-card').forEach((card) => {
-  const button = card.querySelector('.shader-play');
-  button?.addEventListener('click', () => {
-    const frame = document.createElement('iframe');
-    frame.src = `https://www.shadertoy.com/embed/${card.dataset.shader}?gui=true&paused=false&muted=true`;
-    frame.title = card.querySelector('h4')?.textContent ?? 'Shader';
-    frame.allowFullscreen = true;
-    frame.loading = 'lazy';
-    button.replaceWith(frame);
+  card.querySelector('.shader-play')?.addEventListener('click', () => {
+    window.open(`https://www.shadertoy.com/view/${card.dataset.shader}`, '_blank', 'noopener');
   });
 });
