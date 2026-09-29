@@ -28,6 +28,9 @@ const FINGER_RADIUS = 0.2;
 const EYE_SOCKETS = [new THREE.Vector3(-0.17, 0.5, -0.56), new THREE.Vector3(0.17, 0.5, -0.56)];
 
 const restCenter = REST.reduce((c, p) => c.add(p), new THREE.Vector3()).divideScalar(N);
+// The bottom ring carries the body's weight when it rests on the floor.
+const IS_BOTTOM = REST.map((p) => p.y < 0.3);
+const N_BOTTOM = IS_BOTTOM.filter(Boolean).length;
 const restOffsets = REST.map((p) => p.clone().sub(restCenter));
 
 // Each eye rides the deformation of the three particles nearest its socket.
@@ -270,6 +273,7 @@ export function initPlayground(root, { onStats } = {}) {
   const finger = { active: false, pos: new THREE.Vector3(), radius: FINGER_RADIUS };
   const press = { t: -1 };        // "Squish" button animation
   let lastInteraction = performance.now();
+  let idleOff = false;
   let lastHop = 0;
 
   const tmp = new THREE.Vector3();
@@ -285,20 +289,41 @@ export function initPlayground(root, { onStats } = {}) {
     for (const vel of v) vel.add(new THREE.Vector3(drift.x, 3.1, drift.z));
   }
 
+  // Jiggle (0..1) sets how the body springs back to its rest shape: wobbly and slow at 0,
+  // firm at 1. Damping stays light so it overshoots and wobbles instead of just settling.
+  let jiggle = 0.35;
+  let support = 1;                 // 0 airborne .. 1 resting on the floor (smoothed)
+  const comVel = new THREE.Vector3();
+
   function step(h) {
-    const stiffness = 0.09;
+    const k = THREE.MathUtils.lerp(35, 260, jiggle);           // spring stiffness (1/s²)
+    const zeta = THREE.MathUtils.lerp(0.06, 0.25, jiggle);     // damping ratio
+    const c = 2 * zeta * Math.sqrt(k);
+
+    // Shape matching as a force: a spring pulls each particle toward its slot in the rest shape
+    // around the center of mass, damped only relative to the body's own motion (so falling and
+    // hopping aren't damped, only the wobble).
+    center.set(0, 0, 0);
+    comVel.set(0, 0, 0);
+    for (let i = 0; i < N; i++) { center.add(x[i]); comVel.add(v[i]); }
+    center.divideScalar(N);
+    comVel.divideScalar(N);
+    // Gravity pre-compensation: resting on the floor, soft springs would sag under the body's
+    // weight (the floor pushes only on the bottom ring). Offset each spring's target by the sag it
+    // would have: upper particles up by g/k, the bottom ring down to match, summing to zero so
+    // there's no net lift. It fades out in the air, so a hop still stretches and wobbles freely.
+    const grounded = x.some((p) => p.y < FLOOR + 0.02) ? 1 : 0;
+    support += (grounded - support) * Math.min(1, h * 12);
+    const sag = support * 9.8 / k;
     for (let i = 0; i < N; i++) {
+      const bias = IS_BOTTOM[i] ? -sag * (N / N_BOTTOM - 1) : sag;
+      goal.copy(center).add(restOffsets[i]);
+      goal.y += bias;
+      goal.sub(x[i]).multiplyScalar(k);
+      tmp.subVectors(v[i], comVel).multiplyScalar(c);
+      v[i].addScaledVector(goal.sub(tmp), h);
       v[i].y -= 9.8 * h;
       xp[i].copy(x[i]).addScaledVector(v[i], h);
-    }
-
-    // Shape matching: pull every particle toward its slot in the rest shape around the center of mass.
-    center.set(0, 0, 0);
-    for (const p of xp) center.add(p);
-    center.divideScalar(N);
-    for (let i = 0; i < N; i++) {
-      goal.copy(center).add(restOffsets[i]);
-      xp[i].lerp(goal, stiffness);
     }
 
     // Keep particles from collapsing into each other.
@@ -424,7 +449,7 @@ export function initPlayground(root, { onStats } = {}) {
 
   function tick(dt, now) {
     // Idle: hop now and then so it's alive before anyone touches it.
-    if (!reducedMotion && now - lastInteraction > 5000 && now - lastHop > 3500) {
+    if (!reducedMotion && !idleOff && now - lastInteraction > 5000 && now - lastHop > 3500) {
       lastHop = now;
       jump();
     }
@@ -467,6 +492,7 @@ export function initPlayground(root, { onStats } = {}) {
 
   const api = {
     setView(view) { uniforms.uView.value = view; },
+    setJiggle(value) { jiggle = THREE.MathUtils.clamp(value, 0, 1); },
     squish() { if (press.t < 0) { press.t = 0; lastInteraction = performance.now(); } },
     jump() { jump(); lastInteraction = performance.now(); },
   };
@@ -477,6 +503,9 @@ export function initPlayground(root, { onStats } = {}) {
     window.__pg = {
       api,
       finger,
+      topY: () => Math.max(...x.map((p) => p.y)),
+      idle(on) { idleOff = !on; },
+      spread: () => Math.max(...x.map((p) => Math.hypot(p.x - center.x, p.z - center.z))),
       run(seconds, fps = 60) {
         for (let i = 0; i < seconds * fps; i++) { simTime += 1 / fps; tick(1 / fps, simTime * 1000); }
         return renderer.domElement.toDataURL();

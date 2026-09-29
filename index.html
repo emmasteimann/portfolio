@@ -122,6 +122,11 @@
             <button class="chip" data-action="squish">Squish</button>
             <button class="chip" data-action="jump">Jump</button>
           </div>
+          <label class="jiggle">
+            <span>Wobbly</span>
+            <input type="range" min="0" max="1" step="0.01" value="0.35" data-action="jiggle" aria-label="Jiggle: wobbly to firm" />
+            <span>Firm</span>
+          </label>
           <p class="playground-stats" aria-live="off"></p>
         </div>
         <p class="playground-note">A browser-sized cousin of SlimeLab: a shape-matching soft body (Müller et al. 2005) simulated in JavaScript and ray-marched as metaballs in one fragment shader, with refraction, thickness-based absorption and dynamic resolution. <a href="/projects/slimelab.html">The full GPU version is in Unreal →</a></p>

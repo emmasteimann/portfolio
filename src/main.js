@@ -63,6 +63,9 @@ if (playground) {
     bindViewSwitch(playground.querySelector('.view-switch'), api.setView);
     playground.querySelector('[data-action="squish"]').addEventListener('click', api.squish);
     playground.querySelector('[data-action="jump"]').addEventListener('click', api.jump);
+    const jiggle = playground.querySelector('[data-action="jiggle"]');
+    jiggle.addEventListener('input', () => api.setJiggle(Number(jiggle.value)));
+    api.setJiggle(Number(jiggle.value));
   });
   if (new URLSearchParams(location.search).has('debug')) {
     start();
