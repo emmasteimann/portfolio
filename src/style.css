@@ -464,3 +464,53 @@ a.feature-main:hover, a.side-card:hover { border-color: rgba(255, 143, 107, 0.45
   html { scroll-behavior: auto; }
   * { transition: none !important; }
 }
+
+/* Shaders */
+.shaders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.shader-card {
+  margin: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.shader-play, .shader-card iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+}
+.shader-play {
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background: #0b0810 center / cover no-repeat;
+  color: var(--text);
+  font: 500 14px var(--font);
+}
+.shader-play span {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(15, 11, 20, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(4px);
+  transition: background 0.2s;
+}
+.shader-play:hover span { background: rgba(255, 143, 107, 0.35); }
+.shader-play--glow {
+  background-image:
+    radial-gradient(circle at 30% 40%, rgba(111, 242, 208, 0.35), transparent 45%),
+    radial-gradient(circle at 70% 65%, rgba(215, 155, 255, 0.35), transparent 50%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0 2px, transparent 2px 4px);
+}
+.shader-play--alt {
+  background-image:
+    radial-gradient(circle at 60% 35%, rgba(255, 143, 107, 0.4), transparent 45%),
+    radial-gradient(circle at 25% 70%, rgba(215, 155, 255, 0.3), transparent 50%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0 2px, transparent 2px 4px);
+}
+.shader-card figcaption { padding: 16px 18px 20px; }
+.shader-card h4 { font-size: 18px; margin-bottom: 6px; }
+.shader-card p { color: var(--text-dim); font-size: 14px; margin-bottom: 10px; }
+.shader-card a { color: var(--accent); font-size: 14px; text-decoration: none; }
+@media (max-width: 900px) { .shaders { grid-template-columns: 1fr; } }
