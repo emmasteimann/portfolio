@@ -70,30 +70,30 @@
       <div class="featured">
         <a class="feature-main" href="/projects/slimelab.html">
           <div class="media">
-            <video src="/media/slime_clear_squish.mp4" poster="/media/slime_clear_squish.jpg" muted loop playsinline preload="none" data-autoplay></video>
+            <video src="/media/slimelab/canal.mp4" poster="/media/slimelab/canal_poster.jpg" muted loop playsinline preload="none" data-autoplay></video>
           </div>
           <div class="feature-body">
-            <p class="eyebrow">Unreal Engine 5.8 plugin · GPU simulation · Rendering</p>
+            <p class="eyebrow">Unreal Engine 5.8 · Unity 6.5 URP · GPU simulation · Rendering</p>
             <h3>SlimeLab</h3>
-            <p>A playable slime character simulated with MLS-MPM on the GPU and rendered with a custom pass: ray-marched isosurface, two-surface lens refraction, bubbles and glow eyes. Squash it flat and it re-goos itself.</p>
+            <p>A physically simulated slime character you can squash flat and watch re-goo itself: MLS-MPM on the GPU, a ray-marched surface shaded as a lens, bubbles and glow eyes. Built twice, in Unreal and Unity, and measured side by side.</p>
             <ul class="stats">
-              <li><strong>51k</strong> particles</li>
-              <li><strong>8.2 ms</strong> sim</li>
-              <li><strong>1.2 ms</strong> render</li>
+              <li><strong>33k</strong> particles</li>
+              <li><strong>4.4–5.5 ms</strong> sim</li>
+              <li><strong>−30–45%</strong> after optimizing</li>
               <li>M5 Pro · Metal · 1440p</li>
             </ul>
-            <span class="more">Read the breakdown →</span>
+            <span class="more">Read the write-up →</span>
           </div>
         </a>
 
         <div class="feature-side">
-          <a class="side-card" href="/projects/slimelab.html#shape-shifting">
-            <div class="thumb"><video src="/media/slime_shapeshift.mp4" poster="/media/slime_shapeshift.jpg" muted loop playsinline preload="none" data-autoplay></video></div>
-            <div><h4>Shape-shifting</h4><p>SDF molds with density control, blending between five shapes.</p></div>
+          <a class="side-card" href="/projects/slimelab.html#simulation">
+            <div class="thumb"><video src="/media/slimelab/shapeshift.mp4" poster="/media/slimelab/shapeshift_poster.jpg" muted loop playsinline preload="none" data-autoplay></video></div>
+            <div><h4>Shape-shifting</h4><p>SDF molds with density control, blending between five shapes of equal volume.</p></div>
           </a>
-          <a class="side-card" href="/projects/slimelab.html#collision">
-            <div class="thumb"><video src="/media/slime_scene_collision.mp4" poster="/media/slime_scene_collision.jpg" muted loop playsinline preload="none" data-autoplay></video></div>
-            <div><h4>Scene collision</h4><p>Collides with any mesh through the Global Distance Field, no authored colliders.</p></div>
+          <a class="side-card" href="/projects/slimelab.html#two-engines">
+            <div class="thumb"><video src="/media/slimelab/urp_demo.mp4" poster="/media/slimelab/urp_demo_poster.jpg" muted loop playsinline preload="none" data-autoplay></video></div>
+            <div><h4>Two engines</h4><p>The same simulation in Unreal and Unity URP, matched to the centimetre and timed head to head.</p></div>
           </a>
           <div class="side-card side-card--lab">
             <div class="thumb thumb--lab"><span>In the lab</span></div>
@@ -129,7 +129,7 @@
           </label>
           <p class="playground-stats" aria-live="off"></p>
         </div>
-        <p class="playground-note">A browser-sized cousin of SlimeLab: a shape-matching soft body (Müller et al. 2005) simulated in JavaScript and ray-marched as metaballs in one fragment shader, with refraction, thickness-based absorption and dynamic resolution. <a href="/projects/slimelab.html">The full GPU version is in Unreal →</a></p>
+        <p class="playground-note">A browser-sized cousin of SlimeLab: a shape-matching soft body (Müller et al. 2005) simulated in JavaScript and ray-marched as metaballs in one fragment shader, with refraction, thickness-based absorption and dynamic resolution. <a href="/projects/slimelab.html">The full GPU version runs in Unreal and Unity →</a></p>
       </div>
     </section>
 
