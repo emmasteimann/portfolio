@@ -17,6 +17,7 @@ uniform vec2 uImageSize;
 uniform vec2 uFocus;
 uniform float uZoom;       // 1 = cover fit; smaller zooms in (debug)
 uniform vec2 uMouse;        // smoothed, -1..1
+uniform vec2 uPointer;      // smoothed pointer in screen uv (0..1, y up), for the ghost's gaze
 uniform float uTime;
 uniform vec4 uCrt;          // x0, y0, x1, y1 in image pixels
 uniform int uView;          // CRT debug view: 0 beauty, 1 normals, 2 thickness, 3 march steps
@@ -220,6 +221,73 @@ float crtMask(vec2 px) {
   return 1.0 - smoothstep(-1.0, 1.0, dist);
 }
 
+
+// ---------------------------------------------------------------------------------------------
+// The ghost at the desk, animated inside the painting: a squash-and-stretch warp anchored at its
+// base (so nothing behind it is ever revealed), eyes that glance toward the cursor, and blinks.
+
+const vec2 GHOST_CENTER = vec2(622.0, 750.0);
+const vec2 GHOST_RADII = vec2(98.0, 128.0);
+const float GHOST_BASE = 860.0;
+const vec2 EYE_L = vec2(627.5, 735.0);
+const vec2 EYE_R = vec2(671.0, 735.0);
+const vec2 EYE_RADII = vec2(6.0, 7.0);
+
+vec3 imageAt(vec2 px) { return texture2D(uImage, vec2(px.x, uImageSize.y - px.y) / uImageSize).rgb; }
+
+// Maps a pixel of the output to the painting pixel it shows: the ghost breathes (stretching up
+// from its base, thinning slightly to keep its volume) and sways a little.
+vec2 ghostWarp(vec2 px) {
+  vec2 d = (px - GHOST_CENTER) / GHOST_RADII;
+  float m = 1.0 - smoothstep(0.72, 1.0, length(d));
+  if (m <= 0.0) return px;
+  float stretch = 0.03 * sin(uTime * 2.1) + 0.01 * sin(uTime * 3.7 + 1.0);
+  float h = max(GHOST_BASE - px.y, 0.0);
+  vec2 src;
+  src.y = GHOST_BASE - h / (1.0 + stretch);
+  src.x = GHOST_CENTER.x + (px.x - GHOST_CENTER.x) * (1.0 + stretch * 0.5);
+  src.x -= sin(uTime * 1.3) * 0.009 * h;
+  return mix(px, src, m);
+}
+
+// Blink schedule: a quick blink every few seconds, sometimes a double.
+float ghostBlink() {
+  float t = uTime / 3.3;
+  float ph = fract(t) * 3.3;
+  float twice = step(0.6, hash12(vec2(floor(t), 4.0)));
+  float b = 1.0 - smoothstep(0.0, 0.07, abs(ph - 0.08));
+  b = max(b, twice * (1.0 - smoothstep(0.0, 0.07, abs(ph - 0.32))));
+  return b;
+}
+
+vec3 ghostEye(vec2 src, vec3 col, vec2 eye, vec2 look, float blink) {
+  vec2 q0 = (src - eye) / EYE_RADII;
+  vec2 q1 = (src - eye - look) / EYE_RADII;
+  if (dot(q0, q0) > 3.2 && dot(q1, q1) > 3.2) return col;
+
+  // Fill where the eye was by interpolating the face around it (left/right, then top/bottom),
+  // so the patch follows the skin's gradient instead of showing up as a flat disc.
+  vec2 f = clamp((src - eye) / vec2(20.0, 22.0) + 0.5, 0.0, 1.0);
+  vec3 lr = mix(imageAt(eye + vec2(-10.0, 0.0)), imageAt(eye + vec2(10.0, 0.0)), f.x);
+  vec3 tb = mix(imageAt(eye + vec2(0.0, -11.0)), imageAt(eye + vec2(0.0, 11.0)), f.y);
+  vec3 face = mix(lr, tb, 0.35);
+  float oldEye = 1.0 - smoothstep(0.95, 1.2, length(q0));
+  col = mix(col, face, oldEye);
+
+  // The eye where it's looking, squashing vertically into the lid as it blinks.
+  float open = max(1.0 - blink, 0.001);
+  vec2 qs = vec2(q1.x, q1.y / open);
+  float newEye = 1.0 - smoothstep(0.9, 1.15, length(qs));
+  col = mix(col, imageAt(eye + look + vec2(src.x - eye.x - look.x, (src.y - eye.y - look.y) / open)), newEye);
+
+  // Fully closed: a small happy arc.
+  float x = (src.x - eye.x - look.x) / EYE_RADII.x;
+  float arc = eye.y + look.y + 1.0 - 2.2 * (1.0 - x * x);
+  float lid = (1.0 - smoothstep(0.5, 1.3, abs(src.y - arc))) * step(abs(x), 0.95);
+  col = mix(col, vec3(0.22, 0.1, 0.1), lid * smoothstep(0.75, 0.95, blink));
+  return col;
+}
+
 // ---------------------------------------------------------------------------------------------
 
 vec3 glow(vec2 px, vec2 center, float radius) {
@@ -241,8 +309,20 @@ void main() {
   uv += uMouse * vec2(0.012, 0.008);
   uv = clamp(uv, vec2(0.0), vec2(1.0));
 
-  vec3 col = texture2D(uImage, uv).rgb;
   vec2 px = vec2(uv.x, 1.0 - uv.y) * uImageSize;
+
+  // The ghost: warp, then eyes that follow the pointer (in screen space, from the ghost's face).
+  vec2 src = ghostWarp(px);
+  vec3 col = imageAt(src);
+  if (abs(src.x - 650.0) < 40.0 && abs(src.y - 735.0) < 20.0) {
+    vec2 faceScreen = (vec2(650.0, uImageSize.y - 735.0) / uImageSize - origin) / scale;
+    vec2 toPointer = (uPointer - faceScreen) * vec2(viewAspect, 1.0);
+    vec2 look = toPointer / max(length(toPointer), 1e-3) * clamp(length(toPointer) * 3.0, 0.0, 1.0);
+    look = vec2(look.x, -look.y) * vec2(3.6, 2.4);             // image pixels, y down
+    float blink = ghostBlink();
+    col = ghostEye(src, col, EYE_L, look, blink);
+    col = ghostEye(src, col, EYE_R, look, blink);
+  }
 
   // Lamps.
   float lampL = flicker(1.0), lampR = flicker(9.0);
@@ -309,7 +389,7 @@ void main() {
 export function initHero(container, { onReady } = {}) {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const debugCrt = new URLSearchParams(location.search).has('crt');
+  const debugCrt = ['crt', 'ghost'].some((k) => new URLSearchParams(location.search).has(k));
 
   let renderer;
   try {
@@ -335,6 +415,7 @@ export function initHero(container, { onReady } = {}) {
     uFocus: { value: new THREE.Vector2(...FOCUS) },
     uZoom: { value: 1 },
     uMouse: { value: new THREE.Vector2(0, 0) },
+    uPointer: { value: new THREE.Vector2(0.5, 0.5) },
     uTime: { value: 0 },
     uCrt: { value: new THREE.Vector4(...CRT_RECT) },
     uView: { value: 0 },
@@ -343,7 +424,10 @@ export function initHero(container, { onReady } = {}) {
   scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
 
   // ?crt zooms into the desk CRT, for tuning its shader.
-  if (debugCrt) {
+  if (new URLSearchParams(location.search).has('ghost')) {
+    uniforms.uFocus.value.set(650 / IMAGE_SIZE[0], 1 - 760 / IMAGE_SIZE[1]);
+    uniforms.uZoom.value = 0.17;
+  } else if (debugCrt) {
     uniforms.uFocus.value.set((CRT_RECT[0] + CRT_RECT[2]) / 2 / IMAGE_SIZE[0], 1 - (CRT_RECT[1] + CRT_RECT[3]) / 2 / IMAGE_SIZE[1]);
     uniforms.uZoom.value = 0.16;
   }
@@ -356,10 +440,16 @@ export function initHero(container, { onReady } = {}) {
   new ResizeObserver(resize).observe(container);
   resize();
 
-  // Mouse parallax, eased.
+  // Mouse parallax and the ghost's gaze, eased. With no pointer around (phones, or an idle
+  // mouse), the ghost's eyes wander on their own.
   const target = new THREE.Vector2();
+  const pointerTarget = new THREE.Vector2(0.5, 0.5);
+  let lastPointerMove = -1e9;
   window.addEventListener('pointermove', (e) => {
     target.set((e.clientX / window.innerWidth) * 2 - 1, -((e.clientY / window.innerHeight) * 2 - 1));
+    const rect = container.getBoundingClientRect();
+    pointerTarget.set((e.clientX - rect.left) / rect.width, 1 - (e.clientY - rect.top) / rect.height);
+    lastPointerMove = performance.now();
   }, { passive: true });
 
   // Only animate while the hero is on screen and the tab is visible.
@@ -384,6 +474,11 @@ export function initHero(container, { onReady } = {}) {
     if (visible && !document.hidden) {
       uniforms.uTime.value = clock.getElapsedTime();
       uniforms.uMouse.value.lerp(target, 0.04);
+      if (performance.now() - lastPointerMove > 4000) {
+        const t = uniforms.uTime.value;
+        pointerTarget.set(0.5 + 0.35 * Math.sin(t * 0.37) * Math.sin(t * 0.13 + 1), 0.45 + 0.2 * Math.sin(t * 0.29 + 2));
+      }
+      uniforms.uPointer.value.lerp(pointerTarget, 0.12);
       renderer.render(scene, camera);
     }
     requestAnimationFrame(frame);
