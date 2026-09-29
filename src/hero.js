@@ -19,6 +19,7 @@ uniform float uZoom;       // 1 = cover fit; smaller zooms in (debug)
 uniform vec2 uMouse;        // smoothed, -1..1
 uniform float uTime;
 uniform vec4 uCrt;          // x0, y0, x1, y1 in image pixels
+uniform int uView;          // CRT debug view: 0 beauty, 1 normals, 2 thickness, 3 march steps
 
 varying vec2 vUv;
 
@@ -39,6 +40,15 @@ float flicker(float seed) {
   float slow = 0.85 + 0.15 * noise1(uTime * 1.3 + seed);
   float fast = noise1(uTime * 11.0 + seed * 7.0);
   return slow * (fast < 0.08 ? 0.75 : 1.0);
+}
+
+// Compact turbo-style heat map for the debug views.
+vec3 heat(float x) {
+  x = clamp(x, 0.0, 1.0);
+  return clamp(vec3(
+    0.14 + x * (4.6 - x * 3.9),
+    0.09 + x * (3.4 - x * 3.1) + x * x * 0.4,
+    0.5 + x * (2.2 - x * 4.1) + x * x * 1.6), 0.0, 1.0);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -121,12 +131,16 @@ vec3 crtScene(vec2 q) {
   // March the slime.
   float t = 0.0;
   bool hit = false;
+  float steps = 0.0;
   for (int i = 0; i < 48; i++) {
+    steps += 1.0;
     float d = slimeSdf(ro + rd * t, height, squash);
     if (d < 0.002) { hit = true; break; }
     t += d;
     if (t > 8.0) break;
   }
+  vec3 debugNormal = vec3(0.0);
+  float debugThick = 0.0;
 
   if (hit) {
     vec3 p = ro + rd * t;
@@ -143,6 +157,8 @@ vec3 crtScene(vec2 q) {
       if (d < 0.002) break;
       thick += max(d, 0.01);
     }
+    debugNormal = n;
+    debugThick = thick;
     vec3 exitP = p + rIn * thick;
     vec3 nOut = -slimeNormal(exitP, height, squash);
     vec3 rOut = refract(rIn, nOut, 1.33);
@@ -182,6 +198,11 @@ vec3 crtScene(vec2 q) {
     }
     col = slime;
   }
+
+  // Debug views: what a rendering engineer looks at in RenderDoc, on the desk.
+  if (uView == 1) col = hit ? debugNormal * 0.5 + 0.5 : vec3(0.04, 0.03, 0.07);
+  if (uView == 2) col = hit ? heat(debugThick / 1.3) : vec3(0.04, 0.03, 0.07);
+  if (uView == 3) col = heat(steps / 48.0);
 
   // Scanlines, flicker and vignette.
   float lines = 0.82 + 0.18 * sin(q.y * (uCrt.w - uCrt.y) * 3.14159 * 1.0);
@@ -285,7 +306,7 @@ void main() {
 }
 `;
 
-export function initHero(container) {
+export function initHero(container, { onReady } = {}) {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const debugCrt = new URLSearchParams(location.search).has('crt');
@@ -316,6 +337,7 @@ export function initHero(container) {
     uMouse: { value: new THREE.Vector2(0, 0) },
     uTime: { value: 0 },
     uCrt: { value: new THREE.Vector4(...CRT_RECT) },
+    uView: { value: 0 },
   };
   const material = new THREE.ShaderMaterial({ vertexShader, fragmentShader, uniforms, depthTest: false });
   scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
@@ -380,5 +402,11 @@ export function initHero(container) {
       requestAnimationFrame(frame);
     }
     container.classList.add('is-live');
+    onReady?.({
+      setView(view) {
+        uniforms.uView.value = view;
+        if (reducedMotion) renderer.render(scene, camera);
+      },
+    });
   });
 }

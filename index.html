@@ -50,7 +50,15 @@
       <a href="#about"><span>04</span>About</a>
     </aside>
 
-    <p class="hero-hint">The CRT on the desk is a live ray-marched shader.</p>
+    <div class="hero-hint">
+      <span>The desk CRT is a live ray-marched shader. View:</span>
+      <div class="view-switch" data-target="hero" role="group" aria-label="CRT debug view" hidden>
+        <button data-view="0" aria-pressed="true">Beauty</button>
+        <button data-view="1" aria-pressed="false">Normals</button>
+        <button data-view="2" aria-pressed="false">Thickness</button>
+        <button data-view="3" aria-pressed="false">Steps</button>
+      </div>
+    </div>
   </section>
 
   <main>
@@ -92,6 +100,31 @@
             <div><h4>Shader cost auditor</h4><p>An Unreal editor plugin that profiles material cost per platform, including Mac.</p></div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="section" id="playground">
+      <div class="section-head">
+        <h2 class="script">Poke the slime</h2>
+        <p class="section-note">Click and drag to poke it. It re-goos itself.</p>
+      </div>
+      <div class="playground">
+        <div class="playground-canvas"></div>
+        <div class="playground-bar">
+          <div class="view-switch" data-target="playground" role="group" aria-label="Debug view" hidden>
+            <button data-view="0" aria-pressed="true">Beauty</button>
+            <button data-view="1" aria-pressed="false">Normals</button>
+            <button data-view="2" aria-pressed="false">Thickness</button>
+            <button data-view="3" aria-pressed="false">Steps</button>
+            <button data-view="4" aria-pressed="false">Particles</button>
+          </div>
+          <div class="playground-actions">
+            <button class="chip" data-action="squish">Squish</button>
+            <button class="chip" data-action="jump">Jump</button>
+          </div>
+          <p class="playground-stats" aria-live="off"></p>
+        </div>
+        <p class="playground-note">A browser-sized cousin of SlimeLab: a shape-matching soft body (Müller et al. 2005) simulated in JavaScript and ray-marched as metaballs in one fragment shader, with refraction, thickness-based absorption and dynamic resolution. <a href="/projects/slimelab.html">The full GPU version is in Unreal →</a></p>
       </div>
     </section>
 
