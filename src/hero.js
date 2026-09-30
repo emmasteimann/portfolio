@@ -283,9 +283,12 @@ vec4 ghostParts(vec3 pw) {
   // rests on the cup's rim. Round feet peek out in front.
   vec3 shoulderL = vec3(-0.66, 0.74, -0.08);
   vec3 tipL = shoulderL + rotZ(-gWave) * vec3(-0.2, -0.3, -0.06);
-  float limbs = sdCapsule(q, shoulderL, tipL, 0.13);
-  limbs = min(limbs, sdCapsule(q, vec3(0.58, 0.66, -0.2), vec3(0.78, 0.76, -0.3), 0.11));
-  limbs = min(limbs, length(q - vec3(-0.34, 0.07, -0.5)) - 0.14);
+  float arms = sdCapsule(q, shoulderL, tipL, 0.13);
+  arms = min(arms, sdCapsule(q, vec3(0.58, 0.66, -0.2), vec3(0.78, 0.76, -0.3), 0.11));
+  // The arms melt into the body at the shoulder (no seam, so no ink line there); the feet stay
+  // separate pieces with their own outlines.
+  body = max(sminG(body, arms, 0.12), -p.y);
+  float limbs = length(q - vec3(-0.34, 0.07, -0.5)) - 0.14;
   limbs = min(limbs, length(q - vec3(0.36, 0.07, -0.5)) - 0.14);
   limbs = max(limbs, -p.y);
 
