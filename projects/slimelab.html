@@ -6,7 +6,7 @@
   <title>SlimeLab — Goose Steimann</title>
   <meta name="description" content="A physically simulated slime character built twice, as an Unreal Engine 5.8 plugin and a Unity 6.5 URP renderer feature: MLS-MPM on the GPU, a ray-marched lens-like surface, and measured side by side." />
   <meta property="og:title" content="SlimeLab — Goose Steimann" />
-  <meta property="og:image" content="/media/slimelab/canal_poster.jpg" />
+  <meta property="og:image" content="/media/slimelab/canal_drop_poster.jpg" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -35,16 +35,16 @@
     </header>
 
     <figure class="wide">
-      <video src="/media/slimelab/canal.mp4" poster="/media/slimelab/canal_poster.jpg" autoplay muted loop playsinline aria-label="The slime crawls down a wet cobbled canal street at golden hour, jumps, turns into a star and back"></video>
-      <figcaption>Unreal Engine 5.8, Lumen. The slime crawls down a canal street at golden hour, jumps, and shape-shifts into a star and back. The street is the Fab <em>Asian Canal Environment</em> pack. Everything on the slime is simulated and rendered by the plugin.</figcaption>
+      <video src="/media/slimelab/canal_drop.mp4" poster="/media/slimelab/canal_drop_poster.jpg" autoplay muted loop playsinline aria-label="The slime drops onto a wet cobbled canal street, splats flat and pulls itself back into a dome"></video>
+      <figcaption>Unreal Engine 5.8, Lumen. The slime drops onto a canal street at golden hour, splats, and pulls itself back into a dome. The street is the Fab <em>Asian Canal Environment</em> pack. Everything on the slime is simulated and rendered by the plugin.</figcaption>
     </figure>
 
     <div class="col">
       <div class="stats" aria-label="Key figures">
-        <div class="stat"><b>33,298</b><span>MPM particles</span></div>
+        <div class="stat"><b>34,600</b><span>MPM particles</span></div>
         <div class="stat"><b>64³</b><span>grid, 2 particles per cell per axis</span></div>
-        <div class="stat"><b>54</b><span>substeps per 1/60 s (CFL)</span></div>
-        <div class="stat"><b>4.4–5.5 ms</b><span>simulation per frame, both engines</span></div>
+        <div class="stat"><b>39</b><span>substeps per 1/60 s (CFL)</span></div>
+        <div class="stat"><b>3.6–4.0 ms</b><span>simulation per frame, both engines</span></div>
         <div class="stat"><b>0.5 ms</b><span>slime rendering at 1440p (URP, fenced)</span></div>
       </div>
     </div>
@@ -65,10 +65,38 @@
       <p>Where the mold sits turned out to matter most. Anchored at the centre of mass, a squashed body's mold was squashed too. Anchored at the lowest particle, a tall mold pulled goo upward, which lifted the lowest particle, which lifted the mold: the slime launched itself into the sky. The fix is to anchor on the lowest particle that is actually <em>supported</em> by the floor or the scene, and fall back to the centre of mass in the air.</p>
     </section>
 
+    <section class="col" id="sploosh">
+      <p class="eyebrow">Getting the sploosh right</p>
+      <h2>It wasn't stiff. It was falling through treacle.</h2>
+      <p>The first version landed stiff and looked like an egg rather than the dome in the reference. Tuning didn't help, so I wrote a drop test: an 80 cm fall that logs width, height, centre of mass and mean velocity every three frames. The first run showed the real problem. <strong>The slime reached a terminal velocity of 1.4 m/s</strong> after about 40 cm, as if it were falling through syrup.</p>
+      <p>The mold was placed once per frame, but a frame is 39 to 54 physics substeps. During those substeps the body fell away from its mold, and the mold's pull dragged it back, which acted exactly like air drag. It landed slowly, so it couldn't splat. Moving the mold with the body's mean velocity within the frame gave exact free fall.</p>
+      <p>Changing the blob to a <strong>dome</strong> (half an ellipsoid on a flat base, like a drop of goo on a table) then exposed two more bugs:</p>
+      <ul class="plain">
+        <li><strong>A 3.5 g fall.</strong> In the air the mold was centred on the body's centre of mass by its bounding box. A dome's centroid sits an eighth of its height below its box centre, so the mold kept pulling the goo downward, and the goo followed.</li>
+        <li><strong>A 0.55 g hover.</strong> Density control, which re-inflates a squashed body, isn't momentum-free. On a shape whose flat base and curved top don't mirror each other, its pushes don't cancel, and they held the dome up. It now runs only while the body rests on something.</li>
+      </ul>
+      <p>With the physics honest, the rest was feel. A landing weakens the shape memory by up to 88%, which recovers over about half a second (tracked on the GPU, no readback). The material became more liquid, so impacts spread and flow while the mold does the shaping, and the lower stiffness cut the substeps from 54 to 39.</p>
+    </section>
+
+    <div class="col">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>80 cm drop test</th><th class="num">Before</th><th class="num">After</th></tr></thead>
+          <tbody>
+            <tr><td>Shape at rest</td><td class="num">72 × 72 × 40 cm, egg</td><td class="num good">82 × 82 × 35 cm, dome</td></tr>
+            <tr><td>Speed at impact</td><td class="num">1.4 m/s (terminal)</td><td class="num good">3.9 m/s (free fall)</td></tr>
+            <tr><td>Splat</td><td class="num">+3% wider</td><td class="num good">+28% wider, 20 cm tall</td></tr>
+            <tr><td>Recovery</td><td class="num">0.1 s snap</td><td class="num good">~1 s rebound and ooze</td></tr>
+            <tr><td>Substeps per frame</td><td class="num">54</td><td class="num good">39</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="wide pair">
       <figure>
         <video src="/media/slimelab/shapeshift.mp4" poster="/media/slimelab/shapeshift_poster.jpg" autoplay muted loop playsinline aria-label="The slime cycles through cube, donut, pill and star shapes"></video>
-        <figcaption>Blob → cube → donut → pill → star → blob. Every shape holds the same volume of goo.</figcaption>
+        <figcaption>In the canal: dome → cube → donut → pill → star → dome. Every shape holds the same volume of goo.</figcaption>
       </figure>
       <figure>
         <video src="/media/slimelab/crawl.mp4" poster="/media/slimelab/crawl_poster.jpg" autoplay muted loop playsinline aria-label="The slime crawls and jumps on a tiled floor"></video>
@@ -87,6 +115,7 @@
         <li><strong>GGX specular with a broad sheen lobe</strong>, which is what makes the form read as wet instead of glowing.</li>
         <li><strong>Screen-space reflections</strong> with a sky escape: rays that leave the screen over the sky reflect the actual sky pixels rather than the blurry skylight.</li>
         <li><strong>Bubbles</strong> that rise, pop at the surface and re-form deep inside.</li>
+        <li><strong>A coloured shadow</strong> (URP). The slime is drawn after the engine's lighting, so it can't cast a normal shadow. Instead each ground pixel near it marches toward the sun through the simulation grid and applies Beer-Lambert to the goo the light crosses, so thick goo casts a green pool and thin edges barely darken. It follows every splat for free.</li>
         <li><strong>Glow eyes inside the goo.</strong> Mesh eyes were invisible, because the composite refracts the background and then replaces most of it with the scatter term. The eyes are now emissive ovals evaluated along the refracted view ray, dimmed by the goo between them and the surface.</li>
       </ul>
     </section>
@@ -99,12 +128,12 @@
 
     <div class="wide pair">
       <figure>
-        <img src="/media/slimelab/ue_still.jpg" alt="The slime at rest in the Unreal test stage" loading="lazy" />
-        <figcaption><span class="tag ue">Unreal 5.8</span> Test stage, Lumen.</figcaption>
+        <img src="/media/slimelab/ue_still.jpg" alt="The dome-shaped slime at rest on the canal street in Unreal" loading="lazy">
+        <figcaption><span class="tag ue">Unreal 5.8</span> Canal street, Lumen.</figcaption>
       </figure>
       <figure>
-        <img src="/media/slimelab/urp_still.jpg" alt="The slime at rest in the Unity URP test stage" loading="lazy" />
-        <figcaption><span class="tag">Unity 6.5 URP</span> Test stage, ambient probe lighting. The look still needs a matching pass.</figcaption>
+        <img src="/media/slimelab/urp_still.jpg" alt="The dome-shaped slime on the Unity URP test stage" loading="lazy">
+        <figcaption><span class="tag">Unity 6.5 URP</span> Test stage, backlit. The green pool on the floor is the goo's own coloured shadow.</figcaption>
       </figure>
     </div>
 
@@ -113,10 +142,10 @@
         <table>
           <thead><tr><th>After 10 s at rest, same spawn</th><th class="num">Unreal 5.8</th><th class="num">Unity 6.5 URP</th></tr></thead>
           <tbody>
-            <tr><td>Size (cm)</td><td class="num">71.5 × 72.1 × 39.8</td><td class="num">71.6 × 72.1 × 39.6</td></tr>
-            <tr><td>Substeps per 1/60 s</td><td class="num">54</td><td class="num">54</td></tr>
-            <tr><td>Volume ratio J (min–max)</td><td class="num">0.82–1.12</td><td class="num">0.85–1.11</td></tr>
-            <tr><td>Particles (different random jitter)</td><td class="num">33,298</td><td class="num">33,293</td></tr>
+            <tr><td>Size (cm)</td><td class="num">82.5 × 82.0 × 35.4</td><td class="num">81.8 × 81.8 × 35.5</td></tr>
+            <tr><td>Substeps per 1/60 s</td><td class="num">39</td><td class="num">39</td></tr>
+            <tr><td>Volume ratio J (min–max)</td><td class="num">0.71–1.16</td><td class="num">0.70–1.19</td></tr>
+            <tr><td>Particles (different random jitter)</td><td class="num">≈34,600</td><td class="num">34,623</td></tr>
           </tbody>
         </table>
       </div>
@@ -131,6 +160,7 @@
             <tr><td>Ray-march data</td><td>Structured buffer, trilinear by hand (8 loads per sample)</td><td>Copied into a 3D texture once per frame: 1 hardware-trilinear fetch per sample</td></tr>
             <tr><td>Bubbles</td><td>Splatted with texture atomics, normals from depth derivatives</td><td>Compacted into a list and intersected analytically along the ray (exact normals, no atomics)</td></tr>
             <tr><td>Sky lighting</td><td>Skylight SH from the view uniform buffer</td><td>Unity's ambient probe, packed the same way</td></tr>
+            <tr><td>Shadow</td><td>Lumen lights it; a wet decal grounds it</td><td>A compute pass marches sun rays through the sim grid for a coloured, Beer-Lambert shadow</td></tr>
             <tr><td>GPU timing on Metal</td><td><code>ProfileGPU</code> per scope</td><td>No per-pass GPU timestamps in Metal players, so fenced timing</td></tr>
           </tbody>
         </table>
@@ -138,8 +168,8 @@
     </div>
 
     <figure class="wide">
-      <video src="/media/slimelab/urp_demo.mp4" poster="/media/slimelab/urp_demo_poster.jpg" autoplay muted loop playsinline aria-label="In Unity, the slime crawls into a cube and squishes against it, jumps, becomes a star, and crawls back"></video>
-      <figcaption><span class="tag">Unity 6.5 URP</span> Scripted playthrough: it crawls into the cube and squishes against it (baked-SDF collision), jumps, becomes a star and crawls home. The box re-centres on the body as it goes.</figcaption>
+      <video src="/media/slimelab/urp_demo.mp4" poster="/media/slimelab/urp_demo_poster.jpg" autoplay muted loop playsinline aria-label="In Unity, the slime drops and splats, crawls into a cube, jumps, becomes a star, and crawls back"></video>
+      <figcaption><span class="tag">Unity 6.5 URP</span> Scripted playthrough, backlit: it drops and splats, crawls into the cube and squishes against it (baked-SDF collision), jumps, becomes a star, crawls home and turns to face the camera. The box re-centres on the body as it goes.</figcaption>
     </figure>
 
     <section class="col" id="performance">
@@ -147,7 +177,7 @@
       <h2>Measure first, then change the algorithm</h2>
       <p>All numbers are from packaged or player builds on an Apple M5 Pro at 2560×1440, with the camera on the slime.</p>
       <p>Unity gives no per-pass GPU timings in a Metal player, so the URP benchmark uses fenced timing. It submits the work, blocks on a one-element GPU readback, and subtracts the cost of an empty fence. It reports medians of 60 to 100 runs.</p>
-      <p>The first profile of one simulation frame (54 substeps) showed where the time went:</p>
+      <p>The first profile of one simulation frame (54 substeps, before the material change) showed where the time went:</p>
 
       <div class="chart" role="img" aria-label="Per-kernel cost of one simulation frame before optimizing: P2G 1.21 ms, Surface 1.00 ms, GridUpdate 1.74 ms, G2P 2.05 ms, total 6.0 ms">
         <div class="chart-head"><span class="chart-title">One frame of simulation, before optimizing (URP, 6.0 ms)</span></div>
@@ -176,7 +206,7 @@
     <div class="col">
       <div class="chart" id="ab-chart" role="img" aria-label="Simulation time per frame, optimized versus the original algorithm, in both engines">
         <div class="chart-head">
-          <span class="chart-title">Simulation per 1/60 s frame</span>
+          <span class="chart-title">Simulation per 1/60 s frame (39 substeps)</span>
           <span class="legend"><span><i style="background:var(--coral)"></i>original algorithm</span><span><i style="background:var(--goo)"></i>optimized</span></span>
         </div>
         <div class="rows" id="ab-rows"></div>
@@ -184,12 +214,12 @@
       </div>
 
       <div class="note">
-        <p><strong>With the same algorithm, both engines cost about the same.</strong> Unreal measures 4.7–5.5 ms per frame and Unity 4.4 ms, and the optimizations cut 30–45% in both. The algorithm is the lever here, not the engine.</p>
+        <p><strong>With the same algorithm, both engines cost about the same.</strong> Unreal measures 4.0 ms per frame and Unity 3.6 ms, and the optimizations cut 27–33% in both. With the old, stiffer material (54 substeps) the saving was 30–45%. The algorithm is the lever here, not the engine.</p>
       </div>
 
       <h3>Rendering</h3>
       <p>In URP the slime costs about <strong>0.5 ms</strong> at 1440p: a fenced camera render with the slime minus the same render without it, interleaved. In Unreal the per-scope <code>ProfileGPU</code> figure for the slime pass read anywhere from 0.4 to 4.0 ms for the same configuration, so I don't report it as a number.</p>
-    </div>
+    </section>
 
     <section class="col" id="lessons">
       <p class="eyebrow">Measurement lessons</p>
@@ -198,7 +228,9 @@
         <div class="lesson"><span class="n">1</span><h3>Interleave A/B inside one process</h3><p>Background GPU load on a desktop Mac moved absolute timings by ±30% between runs. An "optimized" build once measured slower than the baseline, while a render with no slime at all also got slower. Alternating A and B run by run inside one process is the only comparison I trust.</p></div>
         <div class="lesson"><span class="n">2</span><h3>Check the frame you are timing</h3><p>The first Unreal benchmark placed its camera with a console command that ran before the pawn existed. For several runs it timed a view of the floor with the slime off-screen. A screenshot of the benchmark frame is now part of every run.</p></div>
         <div class="lesson"><span class="n">3</span><h3>Per-scope GPU timings can mislead on Metal</h3><p>Stalls get booked onto whichever scope is open: in one capture, trivial clears measured 10 ms. Treat small scopes with suspicion and cross-check with a second method.</p></div>
-        <div class="lesson"><span class="n">4</span><h3>Background apps throttle themselves</h3><p>The Unreal editor drops to 3 fps when it isn't the foreground app, and a Unity player pauses. With simulated time capped per frame, that looked exactly like a physics bug where the slime floats in slow motion. It wasn't one.</p></div>
+        <div class="lesson"><span class="n">4</span><h3>Log the physics, not just the look</h3><p>"Too stiff" sounded like a tuning problem. A drop test that logged the centre of mass every three frames showed a 1.4 m/s terminal velocity in a vacuum, a bug that had been there from the start. Two more (a 3.5 g fall, a 0.55 g hover) only showed up as numbers.</p></div>
+        <div class="lesson"><span class="n">5</span><h3>Symmetric test shapes hide flips</h3><p>From the first day of the port, the Unity slime rendered upside down: its ray-march read screen rows in the opposite order from URP's colour and depth targets on Metal. An egg looks the same both ways up. The dome gave it away, with its flat base on top and its eyes at the bottom. Asymmetric test content catches orientation bugs.</p></div>
+        <div class="lesson"><span class="n">6</span><h3>Background apps throttle themselves</h3><p>The Unreal editor drops to 3 fps when it isn't the foreground app, and a Unity player pauses. With simulated time capped per frame, that looked exactly like a physics bug where the slime floats in slow motion. It wasn't one.</p></div>
       </div>
     </section>
 
@@ -208,6 +240,7 @@
       <ul class="plain">
         <li>A proper hero sequence in the canal with Movie Render Queue, with the slime facing the camera so the eyes read.</li>
         <li>A look pass on the URP version against the Unreal reference, and the squash-and-stretch springs, which aren't ported yet.</li>
+        <li>Water as a second material in the same grid, so goo and water push on each other with no extra coupling code.</li>
         <li>G2P is now the largest kernel. Next I'll try shared-memory gathers, and test whether P2G's atomics are bandwidth-bound or contention-bound.</li>
         <li>Time Unreal with the same fenced method, so both engines' render numbers come from the same measurement.</li>
       </ul>
