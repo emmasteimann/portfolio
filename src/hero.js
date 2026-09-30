@@ -267,6 +267,8 @@ float gStretch;       // squash and stretch (1 = rest)
 mat3 gToLocal;        // world -> ghost frame (yaw toward the pointer, a little pitch and sway)
 float gWave;          // left arm wave angle
 vec2 gLook;           // eye offset on the face, toward the pointer
+vec3 gArmA[2], gArmB[2];   // arm capsules in the body's stretched frame: shoulder -> hand
+float gArmR[2];
 
 // Parts: x body, y limbs (arms and feet), z hat brim, w hat crown. Local space: y up, face at -z.
 vec4 ghostParts(vec3 pw) {
@@ -281,14 +283,9 @@ vec4 ghostParts(vec3 pw) {
 
   // Nubby flipper arms: the left reaches out onto the desk (and waves now and then), the right
   // rests on the cup's rim. Round feet peek out in front.
-  vec3 shoulderL = vec3(-0.66, 0.74, -0.08);
-  vec3 tipL = shoulderL + rotZ(-gWave) * vec3(-0.2, -0.3, -0.06);
-  float arms = sdCapsule(q, shoulderL, tipL, 0.13);
-  arms = min(arms, sdCapsule(q, vec3(0.58, 0.66, -0.2), vec3(0.78, 0.76, -0.3), 0.11));
-  // The arms melt into the body at the shoulder (no seam, so no ink line there); the feet stay
-  // separate pieces with their own outlines.
-  body = max(sminG(body, arms, 0.12), -p.y);
-  float limbs = length(q - vec3(-0.34, 0.07, -0.5)) - 0.14;
+  // Arms and feet are their own parts, so they get ink outlines (except right at the shoulders).
+  float limbs = min(sdCapsule(q, gArmA[0], gArmB[0], gArmR[0]), sdCapsule(q, gArmA[1], gArmB[1], gArmR[1]));
+  limbs = min(limbs, length(q - vec3(-0.34, 0.07, -0.5)) - 0.14);
   limbs = min(limbs, length(q - vec3(0.36, 0.07, -0.5)) - 0.14);
   limbs = max(limbs, -p.y);
 
@@ -428,6 +425,11 @@ vec3 ghostComposite(vec2 px, vec3 behind, float aa) {
   vec4 dd = d;
   if (part == 0) dd.x = 1e5; else if (part == 1) dd.y = 1e5; else if (part == 2) dd.z = 1e5; else dd.w = 1e5;
   ink = max(ink, 1.0 - smoothstep(inkW * 0.6, inkW * 0.6 + aa, min(min(dd.x, dd.y), min(dd.z, dd.w))));
+  // No ink where the arms join the body: erase it near each shoulder.
+  vec3 lq = lp * vec3(sqrt(gStretch), 1.0 / gStretch, sqrt(gStretch));
+  for (int k = 0; k < 2; k++) {
+    ink *= smoothstep(gArmR[k] * 0.9, gArmR[k] * 1.6, length(lq - gArmA[k]));
+  }
   return mix(c, INK, ink);
 }
 
@@ -469,6 +471,12 @@ void main() {
     float waveEnv = smoothstep(0.0, 0.3, wavePhase) * (1.0 - smoothstep(1.3, 1.7, wavePhase));
     gWave = waveEnv * (0.9 + 0.35 * sin(uTime * 13.0));
     gLook = vec2(clamp(toPointer.x * 0.12, -0.03, 0.03), clamp(toPointer.y * 0.1, -0.02, 0.025));
+    gArmA[0] = vec3(-0.66, 0.74, -0.08);
+    gArmB[0] = gArmA[0] + rotZ(-gWave) * vec3(-0.2, -0.3, -0.06);
+    gArmR[0] = 0.13;
+    gArmA[1] = vec3(0.58, 0.66, -0.2);
+    gArmB[1] = vec3(0.78, 0.76, -0.3);
+    gArmR[1] = 0.11;
     float aa = scale.x * uImageSize.x / uResolution.x / 100.0;
     vec4 plate = plateAt(px);
     col = mix(ghostComposite(px, plate.rgb, aa), plate.rgb, plate.a);   // the cup stays in front
