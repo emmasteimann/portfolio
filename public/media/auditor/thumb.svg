@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 300" font-family="JetBrains Mono, ui-monospace, monospace">
+<rect width="420" height="300" fill="#1c1526"/>
+<line x1="24" y1="214.6" x2="396" y2="214.6" stroke="rgba(255,220,240,0.14)"/>
+<circle cx="235.5" cy="212.3" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Coral: 398 instructions, +0.03 ms</title></circle>
+<circle cx="310.4" cy="148.6" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_MP_02: 539 instructions, +0.72 ms</title></circle>
+<circle cx="238.2" cy="211.4" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_Prop_ML_02: 403 instructions, +0.04 ms</title></circle>
+<circle cx="236.6" cy="211.1" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_Prop_Master_01: 400 instructions, +0.04 ms</title></circle>
+<circle cx="236.0" cy="207.8" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_MasterBase_01: 399 instructions, +0.07 ms</title></circle>
+<circle cx="241.9" cy="210.5" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_Prop_ML_01: 410 instructions, +0.04 ms</title></circle>
+<circle cx="330.1" cy="139.0" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_MP_01: 576 instructions, +0.82 ms</title></circle>
+<circle cx="80.9" cy="255.4" r="5" fill="#d79bff" fill-opacity="0.85"><title>MM_Sky: 107 instructions, -0.44 ms</title></circle>
+<circle cx="241.9" cy="210.9" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_Prop_MLO: 410 instructions, +0.04 ms</title></circle>
+<circle cx="238.2" cy="209.3" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_BigDoor_01: 403 instructions, +0.06 ms</title></circle>
+<circle cx="333.3" cy="57.7" r="7" fill="#ff8f6b" fill-opacity="1"><title>MI_StoneWall_03: 582 instructions, +1.70 ms</title></circle>
+<circle cx="239.2" cy="208.2" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Pots_01: 405 instructions, +0.07 ms</title></circle>
+<circle cx="241.9" cy="202.9" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_OldRope_01: 410 instructions, +0.13 ms</title></circle>
+<circle cx="241.9" cy="207.2" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Fabric_04: 410 instructions, +0.08 ms</title></circle>
+<circle cx="239.2" cy="209.0" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Bucket_01: 405 instructions, +0.06 ms</title></circle>
+<circle cx="236.6" cy="202.6" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_StonesDither: 400 instructions, +0.13 ms</title></circle>
+<circle cx="242.4" cy="208.4" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Lantern_02: 411 instructions, +0.07 ms</title></circle>
+<circle cx="245.1" cy="202.6" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_WoodMasked_Red: 416 instructions, +0.13 ms</title></circle>
+<circle cx="238.2" cy="207.2" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Sacks_01: 403 instructions, +0.08 ms</title></circle>
+<circle cx="242.4" cy="205.3" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Master_01: 411 instructions, +0.10 ms</title></circle>
+<circle cx="239.2" cy="209.1" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Wheelcart_01: 405 instructions, +0.06 ms</title></circle>
+<circle cx="241.9" cy="206.4" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_CratesTorch_01: 410 instructions, +0.09 ms</title></circle>
+<circle cx="242.4" cy="235.1" r="5" fill="#d79bff" fill-opacity="0.85"><title>MI_Banner_01: 411 instructions, -0.22 ms</title></circle>
+<circle cx="236.6" cy="209.3" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Mud: 400 instructions, +0.06 ms</title></circle>
+<text x="321.3" y="43.7" fill="#efe6f2" font-size="15" text-anchor="end">same shader,</text>
+<text x="321.3" y="63.7" fill="#efe6f2" font-size="15" text-anchor="end">2× the cost</text>
+</svg>

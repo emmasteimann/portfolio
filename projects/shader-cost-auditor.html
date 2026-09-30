@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shader Cost Auditor — Goose Steimann</title>
+  <meta name="description" content="An Unreal Engine 5.8 editor plugin that audits every material in a project and measures its real GPU cost on Mac, then shows where the engine's static shader stats and reality disagree." />
+  <meta property="og:title" content="Shader Cost Auditor — Goose Steimann" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="stylesheet" href="/src/writeup.css" />
+</head>
+<body>
+  <header class="nav is-scrolled">
+    <a class="nav-mark" href="/" aria-label="Home">GS</a>
+    <nav>
+      <a href="/#work">Work</a>
+      <a href="/#shipped">Shipped</a>
+      <a href="/#about">About</a>
+      <a class="nav-cta" href="mailto:emmasteimann@gmail.com">Contact</a>
+    </nav>
+  </header>
+
+  <main class="writeup">
+    <header class="hero-block col">
+      <a class="back" href="/#work">← All work</a>
+      <p class="eyebrow">Unreal Engine 5.8 · Editor tooling · Metal</p>
+      <h1>Shader <span class="drip">Cost</span></h1>
+      <p class="lede">An editor plugin that audits every material in a project, then draws each one over the whole screen on this Mac and times it on the GPU. The interesting part is where the engine's own shader stats and the measured cost disagree.</p>
+      <div class="byline"><span>Goose Steimann</span><span>September 2026</span><span>Apple M5 Pro · Metal SM6</span></div>
+    </header>
+
+    <figure class="wide">
+      <img class="chart-img" src="/media/auditor/scatter.svg" alt="Scatter plot of pixel instruction count against measured GPU cost for the Asian Canal materials. Most sit in a cluster near zero; the StoneWall instance sits alone at 582 instructions and 1.70 ms, while its master material with 576 instructions costs 0.82 ms." />
+      <figcaption>Each dot is one unique shader map from the Fab <em>Asian Canal Environment</em> pack. The horizontal axis is what the Material Stats window shows. The vertical axis is what it costs to shade a full 1440p screen, relative to a simple lit material.</figcaption>
+    </figure>
+
+    <div class="col">
+      <div class="stats" aria-label="Key figures">
+        <div class="stat"><b>66</b><span>materials and instances audited</span></div>
+        <div class="stat"><b>25</b><span>unique shader maps</span></div>
+        <div class="stat"><b>780</b><span>shaders they expand into</span></div>
+        <div class="stat"><b>9 s</b><span>full static audit</span></div>
+        <div class="stat"><b>±0.05 ms</b><span>run-to-run agreement, measured</span></div>
+      </div>
+    </div>
+
+    <section class="col" id="why">
+      <p class="eyebrow">Why</p>
+      <h2>The stats window answers one material at a time, and on a Mac it leaves gaps</h2>
+      <p>Unreal's Material Stats window shows instruction counts for the material you have open. A tech artist trying to find what's expensive in a project needs every material at once, ranked. On a Mac some of those numbers don't exist: the Metal compiler reports instruction counts but no sampler counts, so the engine shows a misleading 0.</p>
+      <p>Instruction counts also leave out a lot of real cost. They can't see texture bandwidth, overdraw, or pixels that get clipped and skip the rest of the pipeline. So the auditor has two halves:</p>
+      <ul class="plain">
+        <li><strong>Static audit.</strong> For every material and instance: base-pass pixel and vertex instruction counts, texture lookups, the textures it references and their sizes, how many shaders it expands into, and the flags that make a material costly whatever its instruction count (translucency, masking, world position offset, pixel depth offset, two-sided). Instances that only change parameters are grouped with the parent whose shaders they reuse.</li>
+        <li><strong>Measured cost.</strong> Each unique material covers the whole screen and is timed on the GPU against a simple lit baseline.</li>
+      </ul>
+    </section>
+
+    <section class="col" id="finding">
+      <p class="eyebrow">The finding</p>
+      <h2>Same shader, twice the cost</h2>
+      <p>The canal pack's stone master material and one of its instances compile to nearly the same shader. The stats window ranks them as equals. On the GPU they're not:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Material</th><th class="num">Pixel instructions</th><th>Textures</th><th class="num">Measured, full 1440p</th></tr></thead>
+          <tbody>
+            <tr><td><code>MM_MP_01</code> (master)</td><td class="num">576</td><td>placeholder 16×16 textures</td><td class="num">+0.82 ms</td></tr>
+            <tr><td><code>MI_StoneWall_03</code> (its instance)</td><td class="num">582</td><td>eight 2048² textures, 33.6 MP</td><td class="num good">+1.70 ms</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The master only references tiny placeholders that fit entirely in the GPU's texture cache. The instance swaps in eight real 2K textures, and streaming them through the cache doubles the cost. An instruction count can't show that.</p>
+      <p>Some materials measured <strong>cheaper</strong> than the lit baseline, and those numbers are real too. The unlit sky skips the lighting the baseline pays for (−0.44 ms). A masked banner clips most of its pixels, and clipped pixels skip the rest of the pipeline (−0.22 ms).</p>
+    </section>
+
+    <section class="col" id="how">
+      <p class="eyebrow">How it measures</p>
+      <h2>Make the signal big and the noise cancel</h2>
+      <p>The benchmark launches the project in standalone game mode on an empty map: a camera looking straight down at a plane that fills the view, and one directional light without shadows. Each material goes onto the plane and alternates with a simple lit baseline, round by round, reading the GPU's frame time. Its cost is the median difference, scaled to one full 1440p screen.</p>
+      <p>The first run was useless. At 720p the plane was so cheap that the GPU sat nearly idle and changed its clock between frames: the baseline alone swung by 1.5 ms, more than most materials cost. Rendering at 2560×1440 with 200% screen percentage gives each material four times the pixels against the same fixed overhead, and keeps the GPU busy enough to hold its clock. After that change, two separate runs agree within about 0.05 ms per material.</p>
+    </section>
+
+    <section class="col" id="lessons">
+      <p class="eyebrow">Surprises</p>
+      <h2>What the engine's numbers don't tell you</h2>
+      <div class="lessons">
+        <div class="lesson"><span class="n">1</span><h3>Undrawn materials look free</h3><p>The editor compiles shaders on demand, so a material nobody has drawn has almost no compiled shaders and no instruction counts. The audit compiles its own complete shader map for each unique material, the same way the Material Stats window does, and never writes it to the DDC.</p></div>
+        <div class="lesson"><span class="n">2</span><h3>Some stats don't exist on Metal</h3><p>Metal reports instruction counts but not sampler counts, and the engine shows 0. The report says "n/a" instead of repeating a number that looks real.</p></div>
+        <div class="lesson"><span class="n">3</span><h3>An idle GPU is a noisy GPU</h3><p>Apple's GPU changes clock speed when it has little to do. A benchmark that barely loads it measures the clock governor, not the shader.</p></div>
+        <div class="lesson"><span class="n">4</span><h3>Headless isn't the same as the editor</h3><p>Run as a commandlet, the audit compiled fallback shaders for some materials and saw every texture as a 32×32 placeholder. The editor path is the supported one, and the headless mode is marked experimental.</p></div>
+      </div>
+    </section>
+
+    <section class="col" id="next">
+      <p class="eyebrow">Next</p>
+      <h2>What it doesn't measure yet</h2>
+      <ul class="plain">
+        <li>Vertex work, world position offset and shadow-pass cost. The full-screen plane measures pixel cost only.</li>
+        <li>Texture compression formats. The value read in the editor isn't reliable yet, so the report leaves it out.</li>
+        <li>Translucent overdraw, measured with stacked layers rather than estimated from a flag.</li>
+      </ul>
+    </section>
+
+    <footer class="col refs">
+      <span>Unreal Engine 5.8 editor plugin (C++), with a Python report generator. Tested on the Fab <em>Asian Canal Environment</em> and SlimeLab's own materials.</span>
+      <span><a href="/projects/slimelab.html">The measurement habits here came from SlimeLab →</a></span>
+    </footer>
+  </main>
+
+  <footer class="footer">
+    <p><a href="/">← Back to Goose Steimann</a></p>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

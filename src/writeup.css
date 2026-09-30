@@ -138,3 +138,6 @@
   .writeup .axis > div:first-child { display: none; }
   .writeup .track { padding-right: 3.6rem; }
 }
+
+/* Charts keep their own aspect ratio (media is cropped to 16:9). */
+.writeup figure img.chart-img { aspect-ratio: auto; object-fit: contain; background: var(--sheet); }

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 380" font-family="JetBrains Mono, ui-monospace, monospace">
+<rect width="900" height="380" fill="#1c1526"/>
+<title>Pixel instructions against measured GPU cost, Asian Canal materials on an M5 Pro</title>
+<line x1="64" y1="262.6" x2="820" y2="262.6" stroke="rgba(255,220,240,0.14)"/>
+<line x1="64" y1="18" x2="64" y2="336" stroke="rgba(255,220,240,0.14)"/>
+<text x="64.0" y="354" fill="#7f7089" font-size="12" text-anchor="middle">0</text>
+<text x="172.0" y="354" fill="#7f7089" font-size="12" text-anchor="middle">100</text>
+<text x="280.0" y="354" fill="#7f7089" font-size="12" text-anchor="middle">200</text>
+<text x="388.0" y="354" fill="#7f7089" font-size="12" text-anchor="middle">300</text>
+<text x="496.0" y="354" fill="#7f7089" font-size="12" text-anchor="middle">400</text>
+<text x="604.0" y="354" fill="#7f7089" font-size="12" text-anchor="middle">500</text>
+<text x="712.0" y="354" fill="#7f7089" font-size="12" text-anchor="middle">600</text>
+<text x="820.0" y="354" fill="#7f7089" font-size="12" text-anchor="middle">700</text>
+<text x="56" y="327.8" fill="#7f7089" font-size="12" text-anchor="end">-0.5</text>
+<text x="56" y="266.6" fill="#7f7089" font-size="12" text-anchor="end">+0.0</text>
+<text x="56" y="205.5" fill="#7f7089" font-size="12" text-anchor="end">+0.5</text>
+<text x="56" y="144.3" fill="#7f7089" font-size="12" text-anchor="end">+1.0</text>
+<text x="56" y="83.2" fill="#7f7089" font-size="12" text-anchor="end">+1.5</text>
+<text x="442.0" y="372" fill="#b3a5bd" font-size="13" text-anchor="middle">pixel instructions (base pass, from the engine's stats)</text>
+<text x="20" y="22" fill="#b3a5bd" font-size="13">ms</text>
+<text x="828" y="266.6" fill="#7f7089" font-size="11">baseline</text>
+<circle cx="493.8" cy="259.5" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Coral: 398 instructions, +0.03 ms</title></circle>
+<circle cx="646.1" cy="175.1" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_MP_02: 539 instructions, +0.72 ms</title></circle>
+<circle cx="499.2" cy="258.3" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_Prop_ML_02: 403 instructions, +0.04 ms</title></circle>
+<circle cx="496.0" cy="257.9" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_Prop_Master_01: 400 instructions, +0.04 ms</title></circle>
+<circle cx="494.9" cy="253.5" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_MasterBase_01: 399 instructions, +0.07 ms</title></circle>
+<circle cx="506.8" cy="257.2" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_Prop_ML_01: 410 instructions, +0.04 ms</title></circle>
+<circle cx="686.1" cy="162.4" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_MP_01: 576 instructions, +0.82 ms</title></circle>
+<circle cx="179.6" cy="316.7" r="5" fill="#d79bff" fill-opacity="0.85"><title>MM_Sky: 107 instructions, -0.44 ms</title></circle>
+<circle cx="506.8" cy="257.6" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MM_Prop_MLO: 410 instructions, +0.04 ms</title></circle>
+<circle cx="499.2" cy="255.5" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_BigDoor_01: 403 instructions, +0.06 ms</title></circle>
+<circle cx="692.6" cy="54.7" r="7" fill="#ff8f6b" fill-opacity="1"><title>MI_StoneWall_03: 582 instructions, +1.70 ms</title></circle>
+<circle cx="501.4" cy="254.1" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Pots_01: 405 instructions, +0.07 ms</title></circle>
+<circle cx="506.8" cy="247.0" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_OldRope_01: 410 instructions, +0.13 ms</title></circle>
+<circle cx="506.8" cy="252.8" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Fabric_04: 410 instructions, +0.08 ms</title></circle>
+<circle cx="501.4" cy="255.2" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Bucket_01: 405 instructions, +0.06 ms</title></circle>
+<circle cx="496.0" cy="246.7" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_StonesDither: 400 instructions, +0.13 ms</title></circle>
+<circle cx="507.9" cy="254.3" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Lantern_02: 411 instructions, +0.07 ms</title></circle>
+<circle cx="513.3" cy="246.8" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_WoodMasked_Red: 416 instructions, +0.13 ms</title></circle>
+<circle cx="499.2" cy="252.8" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Sacks_01: 403 instructions, +0.08 ms</title></circle>
+<circle cx="507.9" cy="250.3" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Master_01: 411 instructions, +0.10 ms</title></circle>
+<circle cx="501.4" cy="255.3" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Wheelcart_01: 405 instructions, +0.06 ms</title></circle>
+<circle cx="506.8" cy="251.8" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_CratesTorch_01: 410 instructions, +0.09 ms</title></circle>
+<circle cx="507.9" cy="289.8" r="5" fill="#d79bff" fill-opacity="0.85"><title>MI_Banner_01: 411 instructions, -0.22 ms</title></circle>
+<circle cx="496.0" cy="255.6" r="5" fill="#6ff2d0" fill-opacity="0.85"><title>MI_Mud: 400 instructions, +0.06 ms</title></circle>
+<text x="678.6" y="59.7" fill="#efe6f2" font-size="13" text-anchor="end">StoneWall instance: 582 instr, +1.70 ms</text>
+<text x="698.1" y="167.4" fill="#efe6f2" font-size="13" text-anchor="start">its master:</text>
+<text x="698.1" y="183.4" fill="#efe6f2" font-size="13" text-anchor="start">576 instr, +0.82 ms</text>
+<text x="191.6" y="321.7" fill="#efe6f2" font-size="13" text-anchor="start">unlit sky, −0.44 ms</text>
+</svg>
