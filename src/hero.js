@@ -17,6 +17,7 @@ uniform vec2 uImageSize;
 uniform vec2 uFocus;
 uniform float uZoom;       // 1 = cover fit; smaller zooms in (debug)
 uniform vec2 uMouse;        // smoothed, -1..1
+uniform sampler2D uPlate;   // the ghost's region of the painting with the painted ghost removed
 uniform vec2 uPointer;      // smoothed pointer in screen uv (0..1, y up), for the ghost's gaze
 uniform float uTime;
 uniform vec4 uCrt;          // x0, y0, x1, y1 in image pixels
@@ -223,31 +224,89 @@ float crtMask(vec2 px) {
 
 
 // ---------------------------------------------------------------------------------------------
-// The ghost at the desk, animated inside the painting: a squash-and-stretch warp anchored at its
-// base (so nothing behind it is ever revealed), eyes that glance toward the cursor, and blinks.
+// The ghost at the desk: a little 3D character built from signed distance functions, ray-marched
+// orthographically into the painting and toon-shaded to match it (flat light/shadow bands lit by
+// the desk lamp, a teal rim from the CRT, ink lines on silhouettes and where parts meet). The
+// painted ghost is removed from behind it with an inpainted patch (uPlate).
+// Units: 1 = 100 painting pixels. The origin is where the ghost sits on the desk.
 
-const vec2 GHOST_CENTER = vec2(622.0, 750.0);
-const vec2 GHOST_RADII = vec2(98.0, 128.0);
-const float GHOST_BASE = 860.0;
-const vec2 EYE_L = vec2(627.5, 735.0);
-const vec2 EYE_R = vec2(671.0, 735.0);
-const vec2 EYE_RADII = vec2(6.0, 7.0);
+const vec2 GHOST_ORIGIN = vec2(624.0, 858.0);   // painting px
+const vec4 PLATE_RECT = vec4(504.0, 644.0, 720.0, 872.0);
+const float CAM_TILT = 0.12;                     // the painting looks slightly down at the desk
 
 vec3 imageAt(vec2 px) { return texture2D(uImage, vec2(px.x, uImageSize.y - px.y) / uImageSize).rgb; }
 
-// Maps a pixel of the output to the painting pixel it shows: the ghost breathes (stretching up
-// from its base, thinning slightly to keep its volume) and sways a little.
-vec2 ghostWarp(vec2 px) {
-  vec2 d = (px - GHOST_CENTER) / GHOST_RADII;
-  float m = 1.0 - smoothstep(0.72, 1.0, length(d));
-  if (m <= 0.0) return px;
-  float stretch = 0.03 * sin(uTime * 2.1) + 0.01 * sin(uTime * 3.7 + 1.0);
-  float h = max(GHOST_BASE - px.y, 0.0);
-  vec2 src;
-  src.y = GHOST_BASE - h / (1.0 + stretch);
-  src.x = GHOST_CENTER.x + (px.x - GHOST_CENTER.x) * (1.0 + stretch * 0.5);
-  src.x -= sin(uTime * 1.3) * 0.009 * h;
-  return mix(px, src, m);
+// The painting with the painted ghost removed.
+// rgb: the painting with the painted ghost removed. a: things in front of the ghost (the cup).
+vec4 plateAt(vec2 px) {
+  if (px.x < PLATE_RECT.x || px.x >= PLATE_RECT.z || px.y < PLATE_RECT.y || px.y >= PLATE_RECT.w) return vec4(imageAt(px), 0.0);
+  vec2 q = (px - PLATE_RECT.xy) / (PLATE_RECT.zw - PLATE_RECT.xy);
+  return texture2D(uPlate, vec2(q.x, 1.0 - q.y));
+}
+
+float sminG(float a, float b, float k) {
+  float h = max(k - abs(a - b), 0.0) / k;
+  return min(a, b) - h * h * k * 0.25;
+}
+float sdCapsule(vec3 p, vec3 a, vec3 b, float r) {
+  vec3 pa = p - a, ba = b - a;
+  float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+  return length(pa - ba * h) - r;
+}
+// Cylinder of radius ra and half-height h around y, edges rounded by rb.
+float sdRoundCyl(vec3 p, float ra, float h, float rb) {
+  vec2 d = vec2(length(p.xz) - ra + rb, abs(p.y) - h + rb);
+  return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - rb;
+}
+mat3 rotX(float a) { float c = cos(a), s = sin(a); return mat3(1.0, 0.0, 0.0, 0.0, c, s, 0.0, -s, c); }
+mat3 rotY(float a) { float c = cos(a), s = sin(a); return mat3(c, 0.0, -s, 0.0, 1.0, 0.0, s, 0.0, c); }
+mat3 rotZ(float a) { float c = cos(a), s = sin(a); return mat3(c, s, 0.0, -s, c, 0.0, 0.0, 0.0, 1.0); }
+
+// Per-frame pose, shared by every pixel.
+float gStretch;       // squash and stretch (1 = rest)
+mat3 gToLocal;        // world -> ghost frame (yaw toward the pointer, a little pitch and sway)
+float gWave;          // left arm wave angle
+vec2 gLook;           // eye offset on the face, toward the pointer
+
+// Parts: x body, y limbs (arms and feet), z hat brim, w hat crown. Local space: y up, face at -z.
+vec4 ghostParts(vec3 pw) {
+  vec3 p = gToLocal * pw;
+  float s = gStretch;
+  vec3 q = vec3(p.x * sqrt(s), p.y / s, p.z * sqrt(s));      // volume-preserving stretch from the base
+
+  // A squat pear that spreads onto the desk.
+  float body = sdEllipsoid(q - vec3(0.0, 0.8, 0.0), vec3(0.63, 0.78, 0.5));
+  body = sminG(body, sdEllipsoid(q - vec3(0.0, 0.3, 0.02), vec3(0.9, 0.38, 0.64)), 0.4);
+  body = max(body, -p.y);
+
+  // Nubby flipper arms: the left reaches out onto the desk (and waves now and then), the right
+  // rests on the cup's rim. Round feet peek out in front.
+  vec3 shoulderL = vec3(-0.66, 0.74, -0.08);
+  vec3 tipL = shoulderL + rotZ(-gWave) * vec3(-0.2, -0.3, -0.06);
+  float limbs = sdCapsule(q, shoulderL, tipL, 0.13);
+  limbs = min(limbs, sdCapsule(q, vec3(0.58, 0.66, -0.2), vec3(0.78, 0.76, -0.3), 0.11));
+  limbs = min(limbs, length(q - vec3(-0.34, 0.07, -0.5)) - 0.14);
+  limbs = min(limbs, length(q - vec3(0.36, 0.07, -0.5)) - 0.14);
+  limbs = max(limbs, -p.y);
+
+  // A soft bucket hat, pulled down low and tipped to one side, with a drooping brim.
+  vec3 hp = rotX(-0.12) * rotZ(-0.16) * (p - vec3(0.0, 1.42 * s, 0.02));
+  float r = length(hp.xz * vec2(1.0, 1.12));
+  vec3 bp = hp; bp.y += 0.14 * (r / 0.9) * (r / 0.9);          // brim droops toward its edge
+  float brim = sdRoundCyl(bp * vec3(1.0, 1.0, 1.12), 0.84, 0.028, 0.025);
+  vec3 cp = hp - vec3(0.0, 0.02, 0.0);
+  float crown = sdEllipsoid(cp, vec3(0.49, 0.43, 0.44));
+  crown = max(crown, -cp.y + 0.01);
+  crown = max(crown, -sdEllipsoid(cp - vec3(0.0, 0.47, 0.0), vec3(0.22, 0.06, 0.14)));  // dented top
+  return vec4(body, limbs, brim, crown);
+}
+float ghostSdf(vec3 p) { vec4 d = ghostParts(p); return min(min(d.x, d.y), min(d.z, d.w)); }
+
+vec3 ghostNormal(vec3 p) {
+  const vec2 k = vec2(1.0, -1.0);
+  const float h = 0.002;
+  return normalize(k.xyy * ghostSdf(p + k.xyy * h) + k.yyx * ghostSdf(p + k.yyx * h) +
+                   k.yxy * ghostSdf(p + k.yxy * h) + k.xxx * ghostSdf(p + k.xxx * h));
 }
 
 // Blink schedule: a quick blink every few seconds, sometimes a double.
@@ -260,32 +319,113 @@ float ghostBlink() {
   return b;
 }
 
-vec3 ghostEye(vec2 src, vec3 col, vec2 eye, vec2 look, float blink) {
-  vec2 q0 = (src - eye) / EYE_RADII;
-  vec2 q1 = (src - eye - look) / EYE_RADII;
-  if (dot(q0, q0) > 3.2 && dot(q1, q1) > 3.2) return col;
+const vec3 INK = vec3(0.26, 0.13, 0.16);
 
-  // Fill where the eye was by interpolating the face around it (left/right, then top/bottom),
-  // so the patch follows the skin's gradient instead of showing up as a flat disc.
-  vec2 f = clamp((src - eye) / vec2(20.0, 22.0) + 0.5, 0.0, 1.0);
-  vec3 lr = mix(imageAt(eye + vec2(-10.0, 0.0)), imageAt(eye + vec2(10.0, 0.0)), f.x);
-  vec3 tb = mix(imageAt(eye + vec2(0.0, -11.0)), imageAt(eye + vec2(0.0, 11.0)), f.y);
-  vec3 face = mix(lr, tb, 0.35);
-  float oldEye = 1.0 - smoothstep(0.95, 1.2, length(q0));
-  col = mix(col, face, oldEye);
+// The face, drawn on the body in cylindrical coordinates around its vertical axis
+// (u: arc length across the front, v: height at rest).
+vec3 ghostFace(vec3 col, vec3 lp) {
+  if (lp.z > 0.1) return col;
+  float u = atan(lp.x, -lp.z) * 0.6;
+  float v = lp.y / gStretch;
+  vec2 look = gLook;
 
-  // The eye where it's looking, squashing vertically into the lid as it blinks.
+  // Blush.
+  for (int k = 0; k < 2; k++) {
+    vec2 c = vec2(k == 0 ? -0.4 : 0.4, 1.06);
+    vec2 d = (vec2(u, v) - c - look * 0.4) / vec2(0.11, 0.06);
+    col = mix(col, vec3(1.0, 0.6, 0.62), 0.55 * (1.0 - smoothstep(0.4, 1.0, length(d))));
+  }
+  // Eyes: glossy dark ovals with a highlight; blinking squashes them into a happy arc.
+  float blink = ghostBlink();
   float open = max(1.0 - blink, 0.001);
-  vec2 qs = vec2(q1.x, q1.y / open);
-  float newEye = 1.0 - smoothstep(0.9, 1.15, length(qs));
-  col = mix(col, imageAt(eye + look + vec2(src.x - eye.x - look.x, (src.y - eye.y - look.y) / open)), newEye);
-
-  // Fully closed: a small happy arc.
-  float x = (src.x - eye.x - look.x) / EYE_RADII.x;
-  float arc = eye.y + look.y + 1.0 - 2.2 * (1.0 - x * x);
-  float lid = (1.0 - smoothstep(0.5, 1.3, abs(src.y - arc))) * step(abs(x), 0.95);
-  col = mix(col, vec3(0.22, 0.1, 0.1), lid * smoothstep(0.75, 0.95, blink));
+  for (int k = 0; k < 2; k++) {
+    vec2 c = vec2(k == 0 ? -0.27 : 0.27, 1.19) + look;
+    vec2 d = vec2(u, v) - c;
+    float eye = 1.0 - smoothstep(0.85, 1.05, length(d / vec2(0.066, 0.086 * open)));
+    col = mix(col, vec3(0.17, 0.08, 0.08), eye);
+    float shine = 1.0 - smoothstep(0.6, 1.0, length((d - vec2(0.02, 0.03 * open)) / vec2(0.022, 0.025 * open)));
+    col = mix(col, vec3(1.0), shine * eye);
+    float x = d.x / 0.066;
+    float arc = abs(d.y + (0.016 - 0.045 * (1.0 - x * x)));
+    col = mix(col, INK, (1.0 - smoothstep(0.004, 0.009, arc)) * step(abs(x), 1.0) * smoothstep(0.75, 0.95, blink));
+  }
+  // A little cat mouth ("w") with a pink tongue.
+  vec2 m = (vec2(u, v) - vec2(0.0, 1.08) - look * 0.5) / 1.4;
+  if (abs(m.x) < 0.075 && abs(m.y) < 0.05) {
+    float tongue = (1.0 - smoothstep(0.016, 0.022, length(m - vec2(0.0, -0.022)))) * step(m.y, -0.012);
+    col = mix(col, vec3(0.93, 0.5, 0.55), tongue);
+    float w = -0.022 * abs(sin(3.14159 * m.x / 0.06));
+    float line = (1.0 - smoothstep(0.004, 0.008, abs(m.y - w))) * step(abs(m.x), 0.06);
+    col = mix(col, INK, line);
+  }
   return col;
+}
+
+// Renders the ghost for one painting pixel over what's behind it. aa is one screen pixel in ghost units.
+vec3 ghostComposite(vec2 px, vec3 behind, float aa) {
+  vec2 xy = vec2(px.x - GHOST_ORIGIN.x, GHOST_ORIGIN.y - px.y) / 100.0;
+  vec3 rd = vec3(0.0, -sin(CAM_TILT), cos(CAM_TILT));
+  vec3 up = vec3(0.0, cos(CAM_TILT), sin(CAM_TILT));
+  vec3 ro = vec3(xy.x, 0.0, 0.0) + up * xy.y - rd * 3.0;
+
+  // March the union, remembering how close the ray came to each part: a near miss of a part
+  // other than the one we hit is an ink line (a silhouette drawn over whatever is behind it).
+  vec4 nearest = vec4(1e5);
+  float t = 0.0;
+  bool hit = false;
+  for (int i = 0; i < 72; i++) {
+    vec4 d = ghostParts(ro + rd * t);
+    float dm = min(min(d.x, d.y), min(d.z, d.w));
+    if (dm < 0.0015) { hit = true; break; }
+    nearest = min(nearest, d);
+    t += dm * 0.9;
+    if (t > 6.0) break;
+  }
+  float inkW = max(0.011, aa * 1.0);
+
+  // Contact shadow on the desk.
+  vec3 col = behind * (1.0 - 0.35 * exp(-dot(xy / vec2(0.85, 0.07), xy / vec2(0.85, 0.07))) * step(xy.y, 0.12));
+
+  if (!hit) {
+    float m = min(min(nearest.x, nearest.y), min(nearest.z, nearest.w));
+    return mix(col, INK, 1.0 - smoothstep(inkW - aa, inkW + aa, m));
+  }
+
+  vec3 p = ro + rd * t;
+  vec4 d = ghostParts(p);
+  vec3 n = ghostNormal(p);
+  vec3 lp = gToLocal * p;
+  int part = d.x <= min(d.y, min(d.z, d.w)) ? 0 : d.y <= min(d.z, d.w) ? 1 : d.z <= d.w ? 2 : 3;
+
+  // Toon light: the desk lamp from the upper left, a teal rim from the CRT on the right.
+  vec3 L = normalize(vec3(0.7, 0.5, -0.5));
+  float ndl = dot(n, L);
+  float lit = smoothstep(-0.02, 0.1, ndl);
+  vec3 litC, shadeC;
+  if (part <= 1) { litC = vec3(1.0, 0.87, 0.78); shadeC = vec3(0.72, 0.58, 0.8); }
+  else { litC = vec3(0.4, 0.3, 0.74); shadeC = vec3(0.22, 0.15, 0.46); }
+  if (part == 3) {
+    vec3 hp = rotX(-0.12) * rotZ(-0.16) * (lp - vec3(0.0, 1.42 * gStretch, 0.02));
+    if (hp.y > 0.03 && hp.y < 0.13) { litC = vec3(0.96, 0.52, 0.56); shadeC = vec3(0.62, 0.3, 0.45); }
+  }
+  if (part == 2 && n.y < -0.3) lit = 0.0;                       // the brim's underside
+  if (part == 0 && lp.y / gStretch > 1.36) lit *= 0.0;          // shadow of the brim on the forehead
+  vec3 c = mix(shadeC, litC, lit);
+  if (part <= 1) c *= mix(0.78, 1.0, smoothstep(0.0, 0.45, lp.y));   // darker toward the desk
+  if (part == 0) c = ghostFace(c, lp);
+  float rim = pow(1.0 - max(dot(n, -rd), 0.0), 2.5) * max(dot(n, normalize(vec3(-0.85, 0.1, -0.4))), 0.0);
+  c += vec3(0.3, 0.45, 0.8) * rim * 0.6;
+  c *= 0.97 + 0.06 * hash12(px * 1.7);                            // a little paper grain
+
+  // Ink: the silhouette (grazing angles), near misses of other parts, and seams where parts meet.
+  float ink = 1.0 - smoothstep(0.16, 0.26, dot(n, -rd));
+  vec4 others = nearest;
+  if (part == 0) others.x = 1e5; else if (part == 1) others.y = 1e5; else if (part == 2) others.z = 1e5; else others.w = 1e5;
+  ink = max(ink, 1.0 - smoothstep(inkW - aa, inkW + aa, min(min(others.x, others.y), min(others.z, others.w))));
+  vec4 dd = d;
+  if (part == 0) dd.x = 1e5; else if (part == 1) dd.y = 1e5; else if (part == 2) dd.z = 1e5; else dd.w = 1e5;
+  ink = max(ink, 1.0 - smoothstep(inkW * 0.6, inkW * 0.6 + aa, min(min(dd.x, dd.y), min(dd.z, dd.w))));
+  return mix(c, INK, ink);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -311,17 +451,24 @@ void main() {
 
   vec2 px = vec2(uv.x, 1.0 - uv.y) * uImageSize;
 
-  // The ghost: warp, then eyes that follow the pointer (in screen space, from the ghost's face).
-  vec2 src = ghostWarp(px);
-  vec3 col = imageAt(src);
-  if (abs(src.x - 650.0) < 40.0 && abs(src.y - 735.0) < 20.0) {
+  vec3 col = imageAt(px);
+
+  // The ghost: pose for this frame (turned toward the pointer), then ray-march it over the plate.
+  if (uView != 9 && px.x > PLATE_RECT.x && px.x < PLATE_RECT.z && px.y > 600.0 && px.y < PLATE_RECT.w) {
     vec2 faceScreen = (vec2(650.0, uImageSize.y - 735.0) / uImageSize - origin) / scale;
     vec2 toPointer = (uPointer - faceScreen) * vec2(viewAspect, 1.0);
-    vec2 look = toPointer / max(length(toPointer), 1e-3) * clamp(length(toPointer) * 3.0, 0.0, 1.0);
-    look = vec2(look.x, -look.y) * vec2(3.6, 2.4);             // image pixels, y down
-    float blink = ghostBlink();
-    col = ghostEye(src, col, EYE_L, look, blink);
-    col = ghostEye(src, col, EYE_R, look, blink);
+    float yaw = 0.55 + clamp(toPointer.x * 1.1, -0.6, 0.28);
+    float pitch = clamp(toPointer.y * 0.5, -0.12, 0.18);
+    float sway = 0.035 * sin(uTime * 1.3);
+    gStretch = 1.0 + 0.035 * sin(uTime * 2.1) + 0.01 * sin(uTime * 3.7 + 1.0);
+    gToLocal = transpose(rotY(-yaw) * rotX(pitch) * rotZ(sway));
+    float wavePhase = fract(uTime / 9.0) * 9.0;
+    float waveEnv = smoothstep(0.0, 0.3, wavePhase) * (1.0 - smoothstep(1.3, 1.7, wavePhase));
+    gWave = waveEnv * (0.9 + 0.35 * sin(uTime * 13.0));
+    gLook = vec2(clamp(toPointer.x * 0.12, -0.03, 0.03), clamp(toPointer.y * 0.1, -0.02, 0.025));
+    float aa = scale.x * uImageSize.x / uResolution.x / 100.0;
+    vec4 plate = plateAt(px);
+    col = mix(ghostComposite(px, plate.rgb, aa), plate.rgb, plate.a);   // the cup stays in front
   }
 
   // Lamps.
@@ -416,6 +563,7 @@ export function initHero(container, { onReady } = {}) {
     uZoom: { value: 1 },
     uMouse: { value: new THREE.Vector2(0, 0) },
     uPointer: { value: new THREE.Vector2(0.5, 0.5) },
+    uPlate: { value: null },
     uTime: { value: 0 },
     uCrt: { value: new THREE.Vector4(...CRT_RECT) },
     uView: { value: 0 },
@@ -426,7 +574,7 @@ export function initHero(container, { onReady } = {}) {
   // ?crt zooms into the desk CRT, for tuning its shader.
   if (new URLSearchParams(location.search).has('ghost')) {
     uniforms.uFocus.value.set(650 / IMAGE_SIZE[0], 1 - 760 / IMAGE_SIZE[1]);
-    uniforms.uZoom.value = 0.17;
+    uniforms.uZoom.value = 0.3;
   } else if (debugCrt) {
     uniforms.uFocus.value.set((CRT_RECT[0] + CRT_RECT[2]) / 2 / IMAGE_SIZE[0], 1 - (CRT_RECT[1] + CRT_RECT[3]) / 2 / IMAGE_SIZE[1]);
     uniforms.uZoom.value = 0.16;
@@ -484,11 +632,17 @@ export function initHero(container, { onReady } = {}) {
     requestAnimationFrame(frame);
   };
 
-  new THREE.TextureLoader().load(container.dataset.image, (texture) => {
+  const loader = new THREE.TextureLoader();
+  const load = (url) => new Promise((resolve, reject) => loader.load(url, (texture) => {
     texture.colorSpace = THREE.NoColorSpace; // sample and output the painting's values untouched
     texture.minFilter = THREE.LinearFilter;
     texture.generateMipmaps = false;
-    uniforms.uImage.value = texture;
+    resolve(texture);
+  }, undefined, reject));
+
+  Promise.all([load(container.dataset.image), load(container.dataset.plate)]).then(([image, plate]) => {
+    uniforms.uImage.value = image;
+    uniforms.uPlate.value = plate;
     renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
     if (reducedMotion) {
       uniforms.uTime.value = 1.2;
