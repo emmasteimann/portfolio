@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LayerLoom — Goose Steimann</title>
+  <meta name="description" content="LayerLoom: one character illustration in, a layered PSD ready for Live2D rigging out. Layer decomposition, click-selected splits with the hidden art redrawn, hair locks for physics, elbow splits, and a generated blink and open mouth." />
+  <meta property="og:title" content="LayerLoom — Goose Steimann" />
+  <meta property="og:image" content="/media/layerloom/pipeline-quill.jpg" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="stylesheet" href="/src/writeup.css" />
+</head>
+<body>
+  <header class="nav is-scrolled">
+    <a class="nav-mark" href="/" aria-label="Home">GS</a>
+    <nav>
+      <a href="/#work">Work</a>
+      <a href="/#shipped">Shipped</a>
+      <a href="/#about">About</a>
+      <a class="nav-cta" href="mailto:emmasteimann@gmail.com">Contact</a>
+    </nav>
+  </header>
+
+  <main class="writeup">
+    <header class="hero-block col">
+      <a class="back" href="/#work">← All work</a>
+      <p class="eyebrow">Python · ComfyUI · SAM 2 · image models · Live2D Cubism · Vite</p>
+      <h1>Layer<span class="drip">Loom</span></h1>
+      <p class="lede">One character illustration in, a layered PSD ready for Live2D rigging out. LayerLoom splits a character into the dozens of separate pieces a rig needs, repaints what each piece was hiding, cuts the hair into locks for physics, and generates a blink and an open mouth.</p>
+      <div class="byline"><span>Goose Steimann</span><span>2026 · ongoing</span><span>Mac · local models + a few paid edits</span></div>
+    </header>
+
+    <figure class="wide board">
+      <img src="/media/layerloom/pipeline-quill.jpg" alt="The pipeline for Quill: the source illustration, a head crop, the decomposed layers, generated expressions, recipe splits, and the finished PSD" />
+      <figcaption>Quill, from one image to a rig-ready PSD. Every step's result is kept, so a rerun only does what changed.</figcaption>
+    </figure>
+
+    <div class="col">
+      <div class="stats" aria-label="Key figures">
+        <div class="stat"><b>36 / 34</b><span>layers for Quill / Boo, named for Cubism</span></div>
+        <div class="stat"><b>~30 min</b><span>of local model time per character</span></div>
+        <div class="stat"><b>~$0.06</b><span>per paid image edit, a handful per character, all logged</span></div>
+        <div class="stat"><b>Cubism 5.3</b><span>imports the PSD with the layers and draw order intact</span></div>
+      </div>
+    </div>
+
+    <section class="col" id="why">
+      <p class="eyebrow">Why</p>
+      <h2>Rigging starts with hours of cutting things apart</h2>
+      <p>A Live2D model moves pieces of a flat illustration: each lock of hair, each eyelid, the mouth, the arms. Before rigging can start, the artwork has to be split into those pieces, and everything one piece covers has to be painted in, or a hole opens the moment something moves. That's usually hours to days of an artist's time per character. I needed it for Quill and Boo, the AI characters in <a href="/projects/goose-world.html">Goose World</a>, so I built a pipeline that does the cutting and an editor for the hand repair after it.</p>
+    </section>
+
+    <section class="col" id="pipeline">
+      <p class="eyebrow">The pipeline</p>
+      <h2>From one image to a layered PSD</h2>
+      <ul class="plain">
+        <li><strong>Decompose, twice.</strong> A local layer-decomposition model (See-through, in ComfyUI) separates the whole character into body parts, then runs again on a square crop of the head. On a full-body pass the eyes are about 30 pixels wide; the head pass gives 70 or more. Both are merged onto one canvas, the head pass winning inside its crop with a feathered edge.</li>
+        <li><strong>Depth-aware layering.</strong> Where a piece is nearer than a layer drawn over it, like a hood's rim or the neck inside a collar, those pixels move to a <code>Front</code> layer above it, so the draw order matches what's in front.</li>
+        <li><strong>Recipe splits.</strong> The model makes one "headwear" layer, so a hat and a hood come out as one. A small recipe file adds a click or two on each extra thing; SAM 2 selects it, it moves to its own layer, and a masked image edit redraws what it was covering.</li>
+        <li><strong>Hair into locks.</strong> Front hair splits into up to six locks and back hair into three curtains for physics. Cuts start from the hair's bottom edge, keep short flicks narrow, and snap to the drawn ink lines so no cut crosses a stroke.</li>
+        <li><strong>Arms split at the elbow.</strong> Each arm is cut across its long axis, and both halves keep a disc of arm around the joint, so bending the elbow never opens a gap.</li>
+        <li><strong>Expressions.</strong> Masked edits close both eyes (split into a closed lash line and a lid patch the shape of the open eye) and open the mouth. They're saved as hidden layers for the rig's EyeOpen and MouthOpenY parameters.</li>
+      </ul>
+    </section>
+
+    <figure class="wide board">
+      <img src="/media/layerloom/layers-quill.jpg" alt="Quill's source illustration beside her 36 separated layers" loading="lazy" />
+      <figcaption>Quill: one illustration, 36 layers. Every part is separate, and the hidden areas are repainted.</figcaption>
+    </figure>
+
+    <div class="wide pair">
+      <figure class="board">
+        <img src="/media/layerloom/exploded-quill.jpg" alt="Quill's layers spread apart in depth, back hair to headwear" loading="lazy" />
+        <figcaption>Quill, exploded back to front.</figcaption>
+      </figure>
+      <figure class="board">
+        <img src="/media/layerloom/exploded-boo.jpg" alt="Boo's layers spread apart in depth" loading="lazy" />
+        <figcaption>Boo, exploded back to front.</figcaption>
+      </figure>
+    </div>
+
+    <section class="col" id="lessons">
+      <p class="eyebrow">What I learned</p>
+      <h2>Details that decided whether it worked</h2>
+      <div class="lessons">
+        <div class="lesson"><span class="n">1</span><h3>Ask the model to take the thing off</h3><p>The first fills showed the image model a layer full of thing-shaped holes and asked it to fill them; it drew pieces of the thing back in. Shown the layer with the thing still on and asked to remove it, it rebuilds what was underneath cleanly.</p></div>
+        <div class="lesson"><span class="n">2</span><h3>Some parts need colour, not shape</h3><p>Quill's gold crown is woven through her purple hat, and SAM's shape-based selection takes both. For woven parts, a recipe can select by colour instead: click each distinct colour on the crown and on everything around it, and each pixel goes with the closest click. Split off the thing in front (the crown), and the fill rebuilds the whole hat underneath.</p></div>
+        <div class="lesson"><span class="n">3</span><h3>Never pay twice</h3><p>Every step keeps its result, so a rerun only does what's missing, and changing a recipe reruns only the recipe step and what follows it. Paid edits are never re-sent unless their step is redone, and each one's usage is logged.</p></div>
+        <div class="lesson"><span class="n">4</span><h3>Check the PSD where it will be used</h3><p>A real closed-eye reference revealed that the PSD writer stored layer records in reverse order, even though its own preview looked right. The fix was confirmed both by recomposing the layers independently and by importing the file into Cubism 5.3.</p></div>
+      </div>
+    </section>
+
+    <div class="wide pair quad">
+      <figure class="board">
+        <img src="/media/layerloom/recipe-splits.jpg" alt="Recipe splits: Boo's hat split off his hood, and Quill's crown split off her hat by colour, with what was underneath redrawn" loading="lazy" />
+        <figcaption>Recipe splits: one click, a new layer, and what was under it redrawn.</figcaption>
+      </figure>
+      <figure class="board">
+        <img src="/media/layerloom/generated-expressions.jpg" alt="Boo and Quill neutral, blinking and talking" loading="lazy" />
+        <figcaption>The missing pieces, generated: a blink and an open mouth for each.</figcaption>
+      </figure>
+      <figure class="board">
+        <img src="/media/layerloom/hair-locks.jpg" alt="Front and back hair split into coloured locks" loading="lazy" />
+        <figcaption>Hair split into locks for physics, each lock coloured.</figcaption>
+      </figure>
+      <figure class="board">
+        <img src="/media/layerloom/elbow-split.jpg" alt="Arms split at the elbow, upper and lower halves overlapping at the joint" loading="lazy" />
+        <figcaption>Arms split at the elbow, both halves sharing the joint so a bend opens no gap.</figcaption>
+      </figure>
+    </div>
+
+    <section class="col" id="studio">
+      <p class="eyebrow">The studio</p>
+      <h2>An editor for the hand repair</h2>
+      <p>The pipeline's output opens as a LayerLoom project in a browser studio built for the cleanup a rig needs:</p>
+      <ul class="plain">
+        <li><strong>Movement preview:</strong> nudge a piece left and right to expose the holes it would open, then turn those holes into a repair mask in one click.</li>
+        <li><strong>Clone underpainting:</strong> paint the art behind a moving piece from pixels nearby.</li>
+        <li><strong>Edge cleanup:</strong> move stray pixels between components without losing any.</li>
+        <li><strong>Keyform reference planner:</strong> map each variant to the Cubism parameter value it belongs at, then export reference packages for rigging.</li>
+      </ul>
+      <p>Selecting and checking never spend credits; generation is always a separate, reviewed step.</p>
+    </section>
+
+    <figure class="wide board">
+      <img src="/media/layerloom/studio-quill-crown.jpg" alt="The LayerLoom studio with Quill loaded, her crown layer selected" loading="lazy" />
+      <figcaption>The studio with Quill's crown layer selected: parts on the left, the canvas, and placement and cleanup tools on the right.</figcaption>
+    </figure>
+
+    <section class="col" id="next">
+      <p class="eyebrow">Next</p>
+      <h2>What's left</h2>
+      <p>LayerLoom produces the layers, not the rig: meshes and keyforms are still authored in Cubism by hand. Next on the pipeline are more mouth shapes (a smile and the vowels), hands split at the wrist, and the sheer skirt over Quill's legs.</p>
+    </section>
+
+    <footer class="col refs">
+      <span>Pipeline: Python 3.12, See-through in ComfyUI (local), SAM 2.1 (local), masked image edits through an image model API. Studio: Vite, a Cloudflare Worker for generation. Output verified in Live2D Cubism 5.3.</span>
+    </footer>
+  </main>
+
+  <footer class="footer">
+    <p><a href="/">← Back to Goose Steimann</a></p>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

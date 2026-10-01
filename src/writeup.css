@@ -154,3 +154,6 @@
 .writeup .placeholder span { font-family: var(--mono); font-size: 0.8rem; color: var(--text-faint); }
 .writeup .pair.quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 560px) { .writeup .pair.quad { grid-template-columns: 1fr; } }
+
+/* Presentation boards carry text: show the whole image instead of cropping to 16:9. */
+.writeup figure.board img { aspect-ratio: auto; object-fit: contain; height: auto; background: #1a1a1f; }
