@@ -65,11 +65,13 @@
         <li><strong>The cast comes too.</strong> Quill and Boo stay on the Mac (one brain, one memory). The phone mirrors their poses at 15 fps, plays their voices from where they stand, and builds a NavMesh from the LiDAR scan so they can wander your real room.</li>
         <li><strong>Clips without UI.</strong> Hold the shutter to record. Clips are the AR camera rendered again, so none of the controls end up in the video.</li>
       </ul>
-      <div class="note warn"><p><strong>Being tested on device.</strong> Room mesh, occlusion, shadows and placement are verified on an iPhone 15 Pro. The newer pieces above (the cast wandering, clips, the lighting blend) are built and compile for iOS, and are going through on-device checks now.</p></div>
+      <div class="note warn"><p><strong>On device so far.</strong> Verified on an iPhone 15 Pro: the room mesh, occlusion, shadows and placement, walking, paint that stays on the room, and the clip recorder (the clip below). The cast wandering your room and the lighting blend are built and going through on-device checks now.</p></div>
     </section>
 
-    <!-- AR clip goes here (my face driving the character in a real room):
-    <figure class="wide"><video src="/media/goose-world/ar.mp4" poster="/media/goose-world/ar.jpg" autoplay muted loop playsinline></video></figure> -->
+    <figure class="wide native">
+      <video src="/media/goose-world/ar.mp4" poster="/media/goose-world/ar.jpg" autoplay muted loop playsinline controls aria-label="A pancake character walking around a real living room in AR, with pink paint splattered on the carpet, cushions and furniture"></video>
+      <figcaption>AR World on an iPhone 15 Pro, recorded with the app's own clip button (so no controls in the picture). A pancake character walks around my living room, and the paintball blaster's paint stays where it lands: on the carpet, the cushions, the table.</figcaption>
+    </figure>
 
     <section class="col" id="world">
       <p class="eyebrow">The world</p>
@@ -125,6 +127,11 @@
         <li><strong>One brain, many stages.</strong> The same cast can perform on a Live2D overlay, in the 3D world on the Mac, or mirrored into the iPhone's AR room.</li>
       </ul>
     </section>
+
+    <figure class="wide">
+      <video src="/media/goose-world/tabletop.mp4" poster="/media/goose-world/tabletop.jpg" controls playsinline preload="metadata" aria-label="Quill runs a tabletop game for Boo and me on the Live2D stage"></video>
+      <figcaption>Quill is the DM, on the Live2D stage (sound on). Quill runs a tabletop game for Boo and me. Boo drops from the rafters and uses my tied-up character, Alleyne, as a footrest, and I end up hired as a doorstop for a copper a night. Quill's and Boo's lines are generated live by the brain.</figcaption>
+    </figure>
 
     <section class="col" id="engineering">
       <p class="eyebrow">Rendering and performance</p>

@@ -157,3 +157,4 @@
 
 /* Presentation boards carry text: show the whole image instead of cropping to 16:9. */
 .writeup figure.board img { aspect-ratio: auto; object-fit: contain; height: auto; background: #1a1a1f; }
+.writeup figure.native video, .writeup figure.native img { aspect-ratio: auto; height: auto; }
