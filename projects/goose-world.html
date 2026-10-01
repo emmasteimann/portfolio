@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Goose World — Goose Steimann</title>
+  <meta name="description" content="A 3D VTuber app for the Mac with an iPhone AR mode, and a world for an autonomous AI cast: Unity 6 URP, ARKit, and an LLM brain that streams voice in under two seconds." />
+  <meta property="og:title" content="Goose World — Goose Steimann" />
+  <meta property="og:image" content="/media/goose-world/town-bridge-sunset.jpg" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="stylesheet" href="/src/writeup.css" />
+</head>
+<body>
+  <header class="nav is-scrolled">
+    <a class="nav-mark" href="/" aria-label="Home">GS</a>
+    <nav>
+      <a href="/#work">Work</a>
+      <a href="/#shipped">Shipped</a>
+      <a href="/#about">About</a>
+      <a class="nav-cta" href="mailto:emmasteimann@gmail.com">Contact</a>
+    </nav>
+  </header>
+
+  <main class="writeup">
+    <header class="hero-block col">
+      <a class="back" href="/#work">← All work</a>
+      <p class="eyebrow">Unity 6 URP · iOS ARKit · Python · LLM agents</p>
+      <h1>Goose<span class="drip">World</span></h1>
+      <p class="lede">A 3D VTuber app for the Mac, an iPhone app that puts your character in your real room, and a little town for my two AI characters to live in. Two codebases, one show: the world renders and simulates, and a separate brain decides what Quill and Boo say and do.</p>
+      <div class="byline"><span>Goose Steimann</span><span>2026 · ongoing</span><span>Mac · iPhone 15 Pro</span></div>
+    </header>
+
+    <figure class="wide">
+      <img src="/media/goose-world/town-bridge-sunset.jpg" alt="Main Street at sunset: shophouses with string lights, a red footbridge, and the Pixel Pond arcade's neon sign" />
+      <figcaption>Main Street at sunset, from the red footbridge. The sky, fog, window lights and shop signs all follow the in-world clock.</figcaption>
+    </figure>
+
+    <div class="col">
+      <div class="stats" aria-label="Key figures">
+        <div class="stat"><b>2</b><span>apps: Mac (Unity 6 URP) and iPhone (ARKit)</span></div>
+        <div class="stat"><b>&lt; 2 s</b><span>target from a line of chat to the cast's first spoken word</span></div>
+        <div class="stat"><b>1,098</b><span>automated EditMode tests in the world</span></div>
+        <div class="stat"><b>322 → 39 MB</b><span>texture memory after the performance pass</span></div>
+      </div>
+    </div>
+
+    <section class="col" id="why">
+      <p class="eyebrow">Why</p>
+      <h2>Warudo doesn't run on a Mac, and my characters needed somewhere to live</h2>
+      <p>Warudo is the 3D VTuber app most streamers use, and it's Windows-only. I wanted the same thing natively on Apple Silicon: load an avatar, drive it with your face, walk it around, and send it to OBS with a transparent background. I track it against Warudo feature by feature: 62 of 95 rows are done, including all but one of the features needed to stream.</p>
+      <p>The second reason was Quill and Boo, the AI characters I'd been building. They were a flat Live2D overlay. I wanted them in a world where they could walk to the café, play the arcade and mess up the kitchen, with me in it too.</p>
+    </section>
+
+    <section class="col" id="ar">
+      <p class="eyebrow">The iPhone app</p>
+      <h2>Your character, in your real room, wearing your face</h2>
+      <p>In AR World the back camera tracks the room while the front TrueDepth camera tracks your face, so the character you walk around your living room makes your expressions in real time. Walk with the left thumb, tap to jump. On an iPhone 15 Pro it uses the LiDAR room mesh for placement, occlusion and shadows.</p>
+      <ul class="plain">
+        <li><strong>Two cameras, one session.</strong> ARKit can run face tracking on the front camera during world tracking on the back, but not every feature at once: people occlusion and front-camera face tracking compete. The app asks for everything, then logs exactly which features ARKit dropped for the current configuration, instead of failing silently.</li>
+        <li><strong>Lit like the room.</strong> The character's lighting blends ARKit's environment probes with spherical-harmonics ambient and a camera grade; ARKit's light estimate only nudges the key light.</li>
+        <li><strong>The cast comes too.</strong> Quill and Boo stay on the Mac (one brain, one memory). The phone mirrors their poses at 15 fps, plays their voices from where they stand, and builds a NavMesh from the LiDAR scan so they can wander your real room.</li>
+        <li><strong>Clips without UI.</strong> Hold the shutter to record. Clips are the AR camera rendered again, so none of the controls end up in the video.</li>
+      </ul>
+      <div class="note warn"><p><strong>Being tested on device.</strong> Room mesh, occlusion, shadows and placement are verified on an iPhone 15 Pro. The newer pieces above (the cast wandering, clips, the lighting blend) are built and compile for iOS, and are going through on-device checks now.</p></div>
+    </section>
+
+    <figure class="wide placeholder-figure">
+      <div class="placeholder"><span>AR clip coming: my face driving the character in a real room</span></div>
+    </figure>
+
+    <section class="col" id="world">
+      <p class="eyebrow">The world</p>
+      <h2>A town with opening hours</h2>
+      <p>The world is a small town by a river: a house for Quill and Boo, a laundromat, a public bath, a café, a hawker centre, a shrine and an arcade, all walkable. Shops keep real hours. Shut, the shutters come down, the signs go dark and the machines refuse you. Most things can be used: the café's kopi machine makes a cup you can drink, the washing machines run a cycle, and the arcade has three playable games.</p>
+      <ul class="plain">
+        <li><strong>A sky that follows the clock.</strong> A skybox per part of the day, crossfaded in a custom shader as the sun moves; distance fog and river mist change by the hour, and reflections are only redrawn when the blend has moved enough to matter.</li>
+        <li><strong>A cutaway camera.</strong> Indoors, walls between the camera and whoever it's framing fade out with a dithered dissolve and ceilings lift off, so the camera never has to swing to find you.</li>
+        <li><strong>Perception through walls.</strong> The brain asks the world what each character can see and hear. Walls and shut doors block sight; you hear your own room and the ones next door.</li>
+        <li><strong>Captions as part of the render.</strong> The cast's lines type in with their voices, Animal Crossing style, on an overlay camera stacked after post, so they show up in OBS and in screenshots.</li>
+      </ul>
+    </section>
+
+    <div class="wide pair quad">
+      <figure>
+        <img src="/media/goose-world/house-dusk.jpg" alt="Quill and Boo's corner shophouse at dusk, with flower boxes and lanterns" loading="lazy" />
+        <figcaption>Quill and Boo's house, a corner shophouse with a café downstairs, at 18:00.</figcaption>
+      </figure>
+      <figure>
+        <img src="/media/goose-world/quill-captions.jpg" alt="Quill on the street with a speech box at the bottom of the screen" loading="lazy" />
+        <figcaption>Quill's line typing in with her voice.</figcaption>
+      </figure>
+      <figure>
+        <img src="/media/goose-world/arcade-rhythm.jpg" alt="Quill and Boo on a two-player dance pad in the arcade" loading="lazy" />
+        <figcaption>Quill and Boo playing the arcade's rhythm game. Their timing comes from a skill value that grows a little every song.</figcaption>
+      </figure>
+      <figure>
+        <img src="/media/goose-world/arcade-neon.jpg" alt="The arcade interior with neon, claw machines and cabinets" loading="lazy" />
+        <figcaption>Pixel Pond, the arcade, once its neon finally glowed (see below).</figcaption>
+      </figure>
+    </div>
+
+    <section class="col" id="brain">
+      <p class="eyebrow">The brain: neuro-goose</p>
+      <h2>Two AI characters who live in it</h2>
+      <p>Quill is a small, whimsical witch goose; Boo is her friend. They're autonomous VTubers in the spirit of Neuro-sama, run by neuro-goose, a single Python <code>asyncio</code> process I built alongside the world. They talk with each other, with me and with Twitch chat, remember people across streams, and act in the world through the same commands I use.</p>
+      <div class="flow" aria-label="Pipeline">
+        <span>chat · voice · world events</span><i>→</i><span>priority queue</span><i>→</i><span>context + LLM (streamed)</span><i>→</i><span>safety</span><i>→</i><span>streaming TTS</span><i>→</i><span>voice, face and actions in the world</span>
+      </div>
+      <ul class="plain">
+        <li><strong>Latency is a feature.</strong> The target is under two seconds from a line of chat to the first spoken word, so tokens stream to TTS as they arrive and the next line is generated while the current one is still playing. A direct question interrupts autonomous chatter rather than waiting in a queue.</li>
+        <li><strong>Safety isn't optional.</strong> Nothing reaches the voice without passing moderation, a blocklist and a broadcast delay with a kill switch. Chat text is always handled as quoted data, never as instructions.</li>
+        <li><strong>Grounded in what's real.</strong> Every turn gets the live truth about what the character is doing and can perceive, from the world's own state. That stopped them inventing actions that never happened. They're also allowed to be honestly unsure about what they saw or heard.</li>
+        <li><strong>Memory and goals.</strong> Vector memory of viewers and events, running jokes that come back, per-session goals with real setbacks, and a reflection step that finds patterns across several events. Mood follows whatever happened most recently.</li>
+        <li><strong>One brain, many stages.</strong> The same cast can perform on a Live2D overlay, in the 3D world on the Mac, or mirrored into the iPhone's AR room.</li>
+      </ul>
+    </section>
+
+    <section class="col" id="engineering">
+      <p class="eyebrow">Rendering and performance</p>
+      <h2>Bugs worth telling</h2>
+      <div class="lessons">
+        <div class="lesson"><span class="n">1</span><h3>The neon that never glowed</h3><p>No Blender model's emission ever drew in the built app: walk-in signs, lanterns, lit windows, the arcade's neon. Changing the glow strength produced identical frames. The build had no URP Lit <code>_EMISSION</code> shader variant, the one an imported GLB's emissive material needs, so it was stripped. The fix preloads the emissive variants, plus a test that loads every bundled building and checks each glowing material's variant exists.</p></div>
+        <div class="lesson"><span class="n">2</span><h3>Fog that only existed in the editor</h3><p>Distance fog looked right in the editor and was missing in builds. Fog is switched on at runtime, so automatic fog stripping saw no scene using it and dropped every fog variant.</p></div>
+        <div class="lesson"><span class="n">3</span><h3>"Shadow acne" that was z-fighting</h3><p>Awnings, umbrellas and cupboards flickered with a hatch pattern. It wasn't shadows: the model kits built thin surfaces as a front and a back face in the same plane, and exported every material double-sided, so both drew at the same depth. Imported models now drop the covered back face on load.</p></div>
+        <div class="lesson"><span class="n">4</span><h3>The stutter that wasn't mine</h3><p>A crane shot stuttered in 20–30 second windows of ~20 ms frames. The cause was a local LLM on the same Mac streaming an 18 GB model through the same unified memory every ~70 seconds. I proved it by reproducing the stutter on demand with 20 seconds of synthetic GPU memory traffic (13 → 25.5 ms, for exactly that long).</p></div>
+        <div class="lesson"><span class="n">5</span><h3>A performance pass with numbers</h3><p>Texture memory went from 597 textures / 322 MB to 154 / 39 MB by sharing identical images and compressing opaque ones as BC1, with night shots identical in a same-build A/B. Preloaded shader variants went from 114 keyword sets to the 40 actually used, cutting a cold build from about 45 to 20 minutes. The UI's state poll went from 76 ms and 23 MB of garbage on the main thread to a cached snapshot built on a worker.</p></div>
+        <div class="lesson"><span class="n">6</span><h3>Fix the bug class, not the bug</h3><p>"What's the floor under this point?" was one lookup that took the highest thing from 20 m up. It caused three different bugs: café seats that saw the rooftop's furniture, a plushie placed on top of a claw machine, and a toy stowed on an easel. I replaced it with two precise questions (the walkable floor of this storey; the surface in reach to put something on), moved all 32 callers over, and added a test that scans the source so the old lookup can't come back.</p></div>
+      </div>
+    </section>
+
+    <div class="wide pair">
+      <figure>
+        <img src="/media/goose-world/farbank-dusk-before.jpg" alt="The far river bank at dusk, its buildings completely dark" loading="lazy" />
+        <figcaption><span class="tag ue">Before</span> The far bank at dusk: completely dark.</figcaption>
+      </figure>
+      <figure>
+        <img src="/media/goose-world/farbank-dusk-after.jpg" alt="The far river bank at dusk with windows and lamps glowing" loading="lazy" />
+        <figcaption><span class="tag">After</span> Each window gets its own pane that lights on its own schedule, plus porch lamps and signs, for six extra draws per backdrop.</figcaption>
+      </figure>
+    </div>
+
+    <section class="col" id="next">
+      <p class="eyebrow">Next</p>
+      <h2>What I'm doing next</h2>
+      <ul class="plain">
+        <li>Finish the on-device checks for the newer AR features, and record the AR clip for this page.</li>
+        <li>Hand-made rigs for Quill and Boo. The automatic rig is fine for walking and posing, but their big sleeves and long hair follow the nearest bone.</li>
+        <li>Give the cast the phone's room to act in, not just to be mirrored into.</li>
+      </ul>
+    </section>
+
+    <footer class="col refs">
+      <span>Goose World: Unity 6000.5 URP, UniVRM, ARKit (AR Foundation), MediaPipe hand tracking, Syphon to OBS. neuro-goose: Python 3.12 asyncio, LanceDB, streaming TTS.</span>
+      <span>Thanks to Gillie's free Warudo "Live2D Motion" scenes for the body-follow idea, and sinanata/unity-mesh-fracture (MIT) for breakable things.</span>
+    </footer>
+  </main>
+
+  <footer class="footer">
+    <p><a href="/">← Back to Goose Steimann</a></p>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -141,3 +141,16 @@
 
 /* Charts keep their own aspect ratio (media is cropped to 16:9). */
 .writeup figure img.chart-img { aspect-ratio: auto; object-fit: contain; background: var(--sheet); }
+
+/* Pipeline row and media placeholders (Goose World) */
+.writeup .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0.4rem 0 1.4rem; font-family: var(--mono); font-size: 0.78rem; }
+.writeup .flow span { padding: 6px 11px; border-radius: 8px; background: var(--sheet); border: 1px solid var(--rule); color: var(--ink); }
+.writeup .flow i { font-style: normal; color: var(--text-faint); }
+.writeup .placeholder {
+  aspect-ratio: 16 / 9; border-radius: 12px; border: 1px dashed var(--rule);
+  display: grid; place-items: center; text-align: center; padding: 1rem;
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0 12px, transparent 12px 24px), var(--sheet);
+}
+.writeup .placeholder span { font-family: var(--mono); font-size: 0.8rem; color: var(--text-faint); }
+.writeup .pair.quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 560px) { .writeup .pair.quad { grid-template-columns: 1fr; } }
