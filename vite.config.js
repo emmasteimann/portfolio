@@ -9,6 +9,7 @@ export default defineConfig({
         slimelab: resolve(import.meta.dirname, 'projects/slimelab.html'),
         gooseWorld: resolve(import.meta.dirname, 'projects/goose-world.html'),
         layerloom: resolve(import.meta.dirname, 'projects/layerloom.html'),
+        quillAndBoo: resolve(import.meta.dirname, 'projects/quill-and-boo.html'),
         auditor: resolve(import.meta.dirname, 'projects/shader-cost-auditor.html'),
       },
     },

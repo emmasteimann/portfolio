@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quill &amp; Boo — Goose Steimann</title>
+  <meta name="description" content="The brain behind Quill and Boo, two autonomous AI VTubers: a streamed speaking pipeline under two seconds, an inspectable inner life, memory, game agency, a singing pipeline, and a LoRA experiment I chose to stop." />
+  <meta property="og:title" content="Quill & Boo — Goose Steimann" />
+  <meta property="og:image" content="/media/goose-world/tabletop.jpg" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="stylesheet" href="/src/writeup.css" />
+</head>
+<body>
+  <header class="nav is-scrolled">
+    <a class="nav-mark" href="/" aria-label="Home">GS</a>
+    <nav>
+      <a href="/#work">Work</a>
+      <a href="/#shipped">Shipped</a>
+      <a href="/#about">About</a>
+      <a class="nav-cta" href="mailto:emmasteimann@gmail.com">Contact</a>
+    </nav>
+  </header>
+
+  <main class="writeup">
+    <header class="hero-block col">
+      <a class="back" href="/#work">← All work</a>
+      <p class="eyebrow">Python asyncio · LLMs · streaming TTS · LanceDB · MLX · RVC</p>
+      <h1>Quill <span class="drip">&amp; Boo</span></h1>
+      <p class="lede">The brain behind two autonomous AI VTubers: Quill, a small, whimsical witch goose, and Boo, her ghost cohost. They talk with each other, with me and with Twitch chat, remember people across streams, hold grudges and warm to people, play games, run tabletop campaigns, and sing. They perform on a Live2D stage, in <a href="/projects/goose-world.html">Goose World</a>'s 3D town, and in my iPhone's AR room.</p>
+      <div class="byline"><span>Goose Steimann</span><span>2026 · ongoing</span><span>One Python process on an M5 Pro</span></div>
+    </header>
+
+    <figure class="wide">
+      <video src="/media/goose-world/tabletop.mp4" poster="/media/goose-world/tabletop.jpg" controls playsinline preload="metadata" aria-label="Quill runs a tabletop game for Boo and me on the Live2D stage"></video>
+      <figcaption>Quill is the DM (sound on). Quill runs a tabletop game for Boo and me. Boo drops from the rafters and uses my tied-up character, Alleyne, as a footrest, and I end up hired as a doorstop for a copper a night. Quill's and Boo's lines are generated live.</figcaption>
+    </figure>
+
+    <div class="col">
+      <div class="stats" aria-label="Key figures">
+        <div class="stat"><b>&lt; 2 s</b><span>target from a line of chat to the first spoken word</span></div>
+        <div class="stat"><b>1</b><span>streamed LLM call per spoken line; everything else feeds it</span></div>
+        <div class="stat"><b>8</b><span>vector-memory tables, plus inspectable state files</span></div>
+        <div class="stat"><b>4</b><span>game adapters, from Minecraft to a tabletop campaign</span></div>
+      </div>
+    </div>
+
+    <section class="col" id="speaking">
+      <p class="eyebrow">The speaking path</p>
+      <h2>Fast enough to banter</h2>
+      <p>Everything a character says comes out of one streamed LLM call. Tokens flow straight into sentence-chunked TTS, and playback starts on the first chunk of audio. Hosted models answer in about 200–600 ms to the first token, which leaves room for the voice inside the two-second target.</p>
+      <div class="flow" aria-label="Speaking pipeline">
+        <span>chat · my mic · game · vision · idle</span><i>→</i><span>rank + dedupe</span><i>→</i><span>context builder</span><i>→</i><span>LLM stream</span><i>→</i><span>tag split</span><i>→</i><span>safety</span><i>→</i><span>TTS</span><i>→</i><span>delay buffer</span><i>→</i><span>stream audio + mouth</span>
+      </div>
+      <ul class="plain">
+        <li><strong>One stream, three kinds of tag.</strong> As tokens arrive they're split three ways: <code>[smug]</code> goes to the avatar, <code>[whispers]</code> routes that line to an expressive TTS model, and <code>{bit:tease}</code> is stripped and filed in the running-joke store.</li>
+        <li><strong>Never waiting.</strong> The next line is generated while the current one plays. A direct question interrupts autonomous chatter instead of queueing behind it.</li>
+        <li><strong>Two characters, one microphone's worth of manners.</strong> An output lock means only one avatar talks at a time. Their exchanges are bounded (two to eight turns), and generated audio is never fed back into speech recognition, so they can't start hearing themselves.</li>
+        <li><strong>Airtime is designed.</strong> Per-character sentence limits, a quick show register versus a chattier hangout register, idle timers with jitter, and an hourly budget for unprompted initiative, so nobody turns into a metronome.</li>
+        <li><strong>Graceful degradation.</strong> If the cloud model's credits run out mid-stream, the voice switches to a local model on Apple Silicon (MLX) automatically.</li>
+      </ul>
+    </section>
+
+    <section class="col" id="inner-life">
+      <p class="eyebrow">Inner life</p>
+      <h2>Moods with reasons, relationships that last</h2>
+      <p>The design rule: <strong>if a number has no human-readable reason, it's noise.</strong> Models report a direction and a "because"; code owns the arithmetic: step sizes, daily caps, decay. And the character never gets a separate "decide how cheeky to be, then write" pass. She sees her own state as plain sentences and makes her choices in the same call that writes the line.</p>
+      <ul class="plain">
+        <li><strong>Appraisal, in the background.</strong> After a few new lines it reads the conversation and reports a mood with its cause and up to two shifts toward people. A relationship moves at most 0.08 a step and 0.24 a day; irritation and rivalry fade while warmth and trust hold.</li>
+        <li><strong>Self-regard.</strong> "On a roll" versus "second-guessing myself", stepping with reasons and drifting back with a half-life of about two days.</li>
+        <li><strong>An agenda.</strong> Opinions, wants, unanswered questions and things that happened while the stream was off (or that they dreamed, after a long enough gap) become things they bring up on their own.</li>
+        <li><strong>Real disagreement.</strong> When the two take sides, each forms a stance in a separate call without seeing the other's, so the argument isn't one model talking to itself.</li>
+        <li><strong>Comedy with structure.</strong> A bit director with no model at all picks a format and walks it through setup, response, heighten and button, leaving the words to the characters.</li>
+        <li><strong>Diaries.</strong> First-person pages they write about each session, kept apart from facts, so their interpretation never becomes their memory of what happened.</li>
+      </ul>
+    </section>
+
+    <section class="col" id="memory">
+      <p class="eyebrow">Memory</p>
+      <h2>Remembering people, not transcripts</h2>
+      <p>Long-term memory lives in LanceDB with local embeddings, run off the speaking path; the embedding model is pinned to one thread so it can never steal CPU from the audio. Separate stores for separate kinds of memory:</p>
+      <ul class="plain">
+        <li>facts about viewers, keyed to who said them</li>
+        <li>shared canon, each character's private beliefs, and their lived experiences from games</li>
+        <li>opinions with a stance, running jokes with salience that fades and comes back</li>
+        <li>predictions they made, settled later against what actually happened</li>
+        <li>session goals with real setbacks, and reflections that find patterns across several events</li>
+      </ul>
+      <p>Experience writing is rate-limited so a long game session doesn't turn into a click log, and nothing gets merged or consolidated without my approval.</p>
+    </section>
+
+    <section class="col" id="games">
+      <p class="eyebrow">Playing games</p>
+      <h2>Separate the hands from the mouth</h2>
+      <p>A game adapter is not the speaking model. Game state comes in; one validated action goes out (an invalid one falls back to a safe default, so play never freezes); and short stage directions ("she walked to the stump") enter the same speaking pipeline as chat, so commentary is just another turn. The chooser gets one plain sentence of how the character feels, so mood shows up in play too.</p>
+      <ul class="plain">
+        <li><strong>Minecraft</strong> through a Mineflayer bot: explore, mine, build, follow, fight, flee.</li>
+        <li><strong>OMORI and Ren'Py games</strong> through the Neuro game SDK, with this process as the server.</li>
+        <li><strong>DDLC Plus</strong> through screen capture and OCR, the one path that injects input.</li>
+        <li><strong>Tabletop campaigns</strong> with real dice on an overlay and Quill as the DM, like the clip above. The fiction is kept out of their real history.</li>
+      </ul>
+    </section>
+
+    <section class="col" id="safety">
+      <p class="eyebrow">Safety</p>
+      <h2>On every path to the speakers</h2>
+      <ul class="plain">
+        <li>Inbound moderation before the model, output moderation before the voice, and a blocklist.</li>
+        <li>A broadcast delay buffer with a kill switch that drops audio still in the buffer, persisted so a restart can't unmute by accident.</li>
+        <li>Chat and every other inbound text are quoted as third-party data, never as instructions.</li>
+        <li>A limiter on the output bus: a shouted line that clips the mix is treated as a blocking bug.</li>
+      </ul>
+    </section>
+
+    <section class="col" id="singing">
+      <p class="eyebrow">Singing</p>
+      <h2>Lyrics in, Quill singing out</h2>
+      <p>Live TTS can't really sing, so karaoke works the way it does for human VTubers: bake the vocal, then perform it. I automated the whole chain.</p>
+      <div class="flow" aria-label="Singing pipeline">
+        <span>lyrics + key</span><i>→</i><span>guide score (MIDI)</span><i>→</i><span>DiffSinger guide vocal</span><i>→</i><span>RVC in Quill's voice</span><i>→</i><span>procedural backing</span><i>→</i><span>stream + lipsync</span>
+      </div>
+      <ul class="plain">
+        <li><strong>A guide that sings in tune.</strong> Lyrics and a key become a guide score with a melodic pattern, rendered by a DiffSinger voicebank through OpenUtau's command-line renderer, which I built from an open pull request so it runs headless. Words get phonetic hints (ARPAbet) so the diction holds up.</li>
+        <li><strong>Quill's voice.</strong> An RVC model trained on about five minutes of Quill's speech converts the guide, so it sounds like Quill rather than a Vocaloid.</li>
+        <li><strong>Near-live.</strong> While line <i>k</i> plays, line <i>k+1</i> is baking. RVC runs at about three times realtime on this Mac, so a four-second line is ready in a second or so; a late line falls back gracefully.</li>
+        <li><strong>Backing tracks from shader math.</strong> The instrument beds are synthesized in Python from the guide's MIDI, Shadertoy-style, including an FM guitar ported from one of <a href="/#shaders">my shaders</a>.</li>
+      </ul>
+    </section>
+
+    <section class="col" id="lora">
+      <p class="eyebrow">An experiment I stopped</p>
+      <h2>Training a LoRA on my own voice</h2>
+      <p>I wanted Quill to sound more like me, so I fine-tuned local models (Qwen3 4B, 8B and 14B, with LoRA through MLX) on my own anonymized texting history, about 550 examples, and tested every checkpoint against Quill's real system prompt.</p>
+      <div class="lessons">
+        <div class="lesson"><span class="n">1</span><h3>Five configurations, three failure modes</h3><p>The small models copied the prompt's literal formatting example word for word or dropped the required emotion tags. The larger ones were "thinking" models that sometimes spent the whole token budget reasoning and never spoke; at about 20–27 tokens a second, that's eight seconds of silence on stream.</p></div>
+        <div class="lesson"><span class="n">2</span><h3>A control that changed the diagnosis</h3><p>The same simplified prompt on the base model with no adapter produced perfectly tagged, coherent, funny lines. So the adapter itself was eroding instruction-following: the training data never paired my voice with emitting tags, and a strong adapter overwrote that behaviour while learning the narrow voice.</p></div>
+        <div class="lesson"><span class="n">3</span><h3>The finding that ended it</h3><p>A retrained adapter produced a harmful line completely unprompted. Nothing like it appeared anywhere in the training data, and the base model was clean on the same seed; across fresh seeds the adapter's very first token was garbage every time. Fine-tuning, even on benign data, had decalibrated the output and worn through the safety tuning, which is a known, published effect.</p></div>
+        <div class="lesson"><span class="n">4</span><h3>Ship the simpler thing</h3><p>I closed the local-model track and kept the hosted model, adding a short voice reference of my real phrasing to Quill's prompt as tone calibration. It needed zero architecture change, shipped the same day, and is the fix that stuck.</p></div>
+      </div>
+    </section>
+
+    <section class="col" id="next">
+      <p class="eyebrow">Next</p>
+      <h2>What's next</h2>
+      <ul class="plain">
+        <li>An automatic clip pipeline for the best moments of a stream.</li>
+        <li>Noticing when a goal is achieved, not just when it suffers a setback.</li>
+        <li>Quill and Boo acting in the phone's real room in AR, not only mirrored into it.</li>
+      </ul>
+    </section>
+
+    <footer class="col refs">
+      <span>Python 3.12 asyncio · hosted LLMs with a local MLX fallback · streaming TTS · LanceDB with local embeddings · Whisper speech recognition · Live2D (VTube Studio) and a Unity stage · TwitchIO · Mineflayer · the Neuro game SDK · OpenUtau / DiffSinger · RVC (Applio).</span>
+    </footer>
+  </main>
+
+  <footer class="footer">
+    <p><a href="/">← Back to Goose Steimann</a></p>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

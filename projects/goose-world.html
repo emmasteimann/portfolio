@@ -115,23 +115,13 @@
     <section class="col" id="brain">
       <p class="eyebrow">The brain: neuro-goose</p>
       <h2>Two AI characters who live in it</h2>
-      <p>Quill is a small, whimsical witch goose; Boo is her friend. They're autonomous VTubers in the spirit of Neuro-sama, run by neuro-goose, a single Python <code>asyncio</code> process I built alongside the world. They talk with each other, with me and with Twitch chat, remember people across streams, and act in the world through the same commands I use.</p>
+      <p>Quill is a small, whimsical witch goose; Boo is her ghost cohost. They're autonomous VTubers run by neuro-goose, a single Python <code>asyncio</code> process I built alongside the world. Goose World is one of their stages: the brain sends them the same commands I use, and the world tells the brain what each of them can actually see and hear.</p>
       <div class="flow" aria-label="Pipeline">
         <span>chat · voice · world events</span><i>→</i><span>priority queue</span><i>→</i><span>context + LLM (streamed)</span><i>→</i><span>safety</span><i>→</i><span>streaming TTS</span><i>→</i><span>voice, face and actions in the world</span>
       </div>
-      <ul class="plain">
-        <li><strong>Latency is a feature.</strong> The target is under two seconds from a line of chat to the first spoken word, so tokens stream to TTS as they arrive and the next line is generated while the current one is still playing. A direct question interrupts autonomous chatter rather than waiting in a queue.</li>
-        <li><strong>Safety isn't optional.</strong> Nothing reaches the voice without passing moderation, a blocklist and a broadcast delay with a kill switch. Chat text is always handled as quoted data, never as instructions.</li>
-        <li><strong>Grounded in what's real.</strong> Every turn gets the live truth about what the character is doing and can perceive, from the world's own state. That stopped them inventing actions that never happened. They're also allowed to be honestly unsure about what they saw or heard.</li>
-        <li><strong>Memory and goals.</strong> Vector memory of viewers and events, running jokes that come back, per-session goals with real setbacks, and a reflection step that finds patterns across several events. Mood follows whatever happened most recently.</li>
-        <li><strong>One brain, many stages.</strong> The same cast can perform on a Live2D overlay, in the 3D world on the Mac, or mirrored into the iPhone's AR room.</li>
-      </ul>
+      <p>They have moods with reasons, relationships that last, memory of people across streams, game agency and a singing pipeline. <a href="/projects/quill-and-boo.html">The brain has its own case study →</a></p>
     </section>
 
-    <figure class="wide">
-      <video src="/media/goose-world/tabletop.mp4" poster="/media/goose-world/tabletop.jpg" controls playsinline preload="metadata" aria-label="Quill runs a tabletop game for Boo and me on the Live2D stage"></video>
-      <figcaption>Quill is the DM, on the Live2D stage (sound on). Quill runs a tabletop game for Boo and me. Boo drops from the rafters and uses my tied-up character, Alleyne, as a footrest, and I end up hired as a doorstop for a copper a night. Quill's and Boo's lines are generated live by the brain.</figcaption>
-    </figure>
 
     <section class="col" id="engineering">
       <p class="eyebrow">Rendering and performance</p>
