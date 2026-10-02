@@ -172,6 +172,23 @@
       <figcaption><span class="tag">Unity 6.5 URP</span> Scripted playthrough, backlit: it drops and splats, crawls into the cube and squishes against it (baked-SDF collision), jumps, becomes a star, crawls home and turns to face the camera. The box re-centres on the body as it goes.</figcaption>
     </figure>
 
+    <section class="col" id="feeding-time">
+      <p class="eyebrow">Feeding time</p>
+      <h2>A bunny that eats carrots</h2>
+      <p>In the Unity port the slime grew some personality: floppy bunny ears, a round tail and a mouth. Now it's free-range: it crawls to the carrots lying around, opens up and chomps.</p>
+      <ul class="plain">
+        <li><strong>The ears and tail are goo too.</strong> They're shapes on springs that lag the body's acceleration, fly up while it falls and flop when it lands. Each keeps its own shape memory and is refilled even in mid-air, so a landing squashes them without draining them. They cost about 1 ms of simulation.</li>
+        <li><strong>A mouth that's part of the mold.</strong> The mold splits at a mouth line under the eyes and the top half hinges back, with the head tilting and the cheeks puffing out so the opening becomes a pocket. The renderer flags the inside of the mouth and shades it as a darker pocket, hiding the glow eyes behind its roof.</li>
+        <li><strong>Eating.</strong> Carrots on the floor are colliders the goo bumps and pushes. When one reaches his lips he chomps; it sinks into his middle, where you can see it through the clear goo, tumbles and shrinks away over four seconds while the goo flushes peach and his eyes turn the goo's complementary colour.</li>
+        <li><strong>Two bugs worth telling.</strong> The ears and mouth moved the mold's own centre of mass, so re-centring the mold on the body chased itself: a 43 cm slide in 2.5 seconds with the mouth open. Measuring that offset and compensating for it left one 4 cm shift, then stillness. And steering proportional to the speed error couldn't overcome the drag of an open mouth (1 cm in 2 seconds); an integral term on the measured speed got him crawling again.</li>
+      </ul>
+    </section>
+
+    <figure class="wide">
+      <video src="/media/slimelab/bunny_carrots.mp4" poster="/media/slimelab/bunny_carrots_poster.jpg" autoplay muted loop playsinline aria-label="The bunny slime crawls to carrots, chomps them, and the carrots sink and shrink inside its clear body"></video>
+      <figcaption><span class="tag">Unity 6.5 URP</span> Feeding time: he crawls over, chomps a carrot, and you can watch it tumble and dissolve inside him.</figcaption>
+    </figure>
+
     <section class="col" id="performance">
       <p class="eyebrow">Performance</p>
       <h2>Measure first, then change the algorithm</h2>
